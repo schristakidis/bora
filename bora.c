@@ -29,6 +29,8 @@ static int sock = 0;
 
 static int death = 0;
 
+static int c = 0;
+
 #ifdef __WIN32__
 
 int init_wsa (void) {
@@ -161,7 +163,6 @@ PyObject* bora_BIter_iternext(PyObject *self)
   bora_BIter *p = (bora_BIter *)self;
   if (!death) {
     int s, b;
-    int c = 0;
 
     //(p->i)++;
     Py_BEGIN_ALLOW_THREADS

@@ -124,7 +124,9 @@ void * packet_processor(void*args) {
                 stats_r[I_GARBAGE] += buffer[c].buflen;
                 break;
               case F_ADDED:
-                if(iscomplete(fragment->streamid, fragment->blockid)) {block_completed(fragment->streamid, fragment->blockid);}
+                if(iscomplete(fragment->streamid, fragment->blockid)) {
+                printf("QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQRECEIVED BLOCK %d %d ", fragment->streamid, fragment->blockid);
+                block_completed(fragment->streamid, fragment->blockid);}
                 break;
             }
           } else {

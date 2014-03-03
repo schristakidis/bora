@@ -284,24 +284,25 @@ static PyObject *listen_on( PyObject * self, PyObject * value )
         }
 
         sock = socket(AF_INET, SOCK_DGRAM, 0);
-        if (!sock) {
+        if (!sock || sock==-1) {
                 PyErr_SetString(PyExc_AttributeError, "Can't create socket");
                 return NULL;
         }
-
-        int opt = 1;
-        setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); //TODO CHECK WIN32
 
         struct sockaddr_in servaddr = {0};
         servaddr.sin_family = AF_INET;
         servaddr.sin_addr.s_addr=htonl(INADDR_ANY);
         servaddr.sin_port=htons(port);
-        if (bind(sock, (struct sockaddr*)&servaddr, sizeof(servaddr))==-1) {
+        if (bind(sock, (struct sockaddr*)&servaddr, sizeof(servaddr))!=0) {
           sock = 0;
           perror("CANT BIND:");
           PyErr_SetString(PyExc_AttributeError, "Can't bind");
           return NULL;
         }
+
+        int opt = 1;
+        setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); //TODO CHECK WIN32
+
         init_sender(sock);
         init_receiver(sock);
         init_biter();

@@ -248,7 +248,7 @@ int addfragment(FragmentData * fragment, struct sockaddr_in host, struct timeval
 }
 
 BlockData *get_block_data(uint16_t streamid, uint32_t blockid) {
-  pthread_mutex_lock(&bclock);
+  //pthread_mutex_lock(&bclock);
   Block * block = _findblock(streamid, blockid);
   BlockFragment * bf;
   if (block == NULL) {pthread_mutex_unlock(&bclock); return NULL;}
@@ -264,18 +264,18 @@ BlockData *get_block_data(uint16_t streamid, uint32_t blockid) {
       fputs("INCOMPLETE BLOCK\r\n", stderr);
       free(ret->data);
       free(ret);
-      pthread_mutex_unlock(&bclock);
+      //pthread_mutex_unlock(&bclock);
       return NULL;
     }
     memcpy(ret->data+(MTU*i), bf->data->data, bf->data->length);
     ret->length += bf->data->length;
   }
-  pthread_mutex_unlock(&bclock);
+  //pthread_mutex_unlock(&bclock);
   return ret;
 }
 
 int sendblock(uint16_t streamid, uint32_t blockid, struct sockaddr_in to) {
-  pthread_mutex_lock(&bclock);
+  //pthread_mutex_lock(&bclock);
   Block * block = _findblock(streamid, blockid);
   BlockFragment * bf;
   SendData d;
@@ -285,16 +285,17 @@ int sendblock(uint16_t streamid, uint32_t blockid, struct sockaddr_in to) {
     bf = getfragment(block, i);
     if (bf == NULL) {
       fputs("INCOMPLETE BLOCK\r\n", stderr);
-      pthread_mutex_unlock(&bclock);
+      //pthread_mutex_unlock(&bclock);
       return 0;
     }
     d = encode_fragment(bf->data);
     d.to = to;
-    d.data[0] = BLK_BLOCK_ACK;
+    d.data[0] = BLK_BLOCK;
     send_data(d);
   }
-  pthread_mutex_unlock(&bclock);
   pthread_cond_signal(&blockProduced);
+  puts("++++BLOCKPRODUCED");
+  //pthread_mutex_unlock(&bclock);
   return i;
 }
 

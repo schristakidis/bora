@@ -23,7 +23,7 @@
 #include "bpuller_bridge.h"
 
 #define N_SEND 200
-#define S_TRESHOLD 3
+#define S_TRESHOLD 30
 #define N_PRIO 200
 
 
@@ -72,6 +72,7 @@ struct timeval packet_send(int s) {
     pthread_mutex_lock(&send_lock);
     if (f_send<S_TRESHOLD) {
       pthread_cond_signal(&produceBlock);
+      puts("COND PRODUCEBLOCK");
     }
     pthread_mutex_unlock(&send_lock);
   }
@@ -82,6 +83,7 @@ struct timeval packet_send(int s) {
     f_send--;
     if (f_send<S_TRESHOLD) {
       pthread_cond_signal(&produceBlock);
+      puts("COND PRODUCEBLOCK");
     }
     pthread_mutex_unlock(&send_lock);
   }
@@ -112,9 +114,10 @@ struct timeval packet_send(int s) {
 //SENDING THREAD
 void * send_packet(void * sock) {
   int s = *(int*) sock;
+  //int bw = 1000000;
   free(sock);
   for(;;) {
-    usleep(500);
+    usleep(1000);
     packet_send(s);
   }
   return 0;

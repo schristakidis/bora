@@ -125,7 +125,6 @@ void * packet_processor(void*args) {
                 break;
               case F_ADDED:
                 if(iscomplete(fragment->streamid, fragment->blockid)) {
-                printf("QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQRECEIVED BLOCK %d %d ", fragment->streamid, fragment->blockid);
                 block_completed(fragment->streamid, fragment->blockid);}
                 break;
             }

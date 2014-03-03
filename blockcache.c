@@ -317,7 +317,8 @@ BlockIDList get_incomplete_block_list(void) {
   Block * cur;
   BlockIDList ret;
   ret.length = get_blockcache_size();
-  if (!ret.blist) {
+  printf("lenght:%d", ret.length);
+  if (!ret.length) {
     ret.blist = NULL;
     return ret;
   }
@@ -342,7 +343,7 @@ BlockIDList get_complete_block_list(void) {
   Block * cur;
   BlockIDList ret;
   ret.length = get_blockcache_size();
-  if (!ret.blist) {
+  if (!ret.length) {
     ret.blist = NULL;
     return ret;
   }

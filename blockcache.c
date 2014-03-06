@@ -259,11 +259,11 @@ int sendblock(uint16_t streamid, uint32_t blockid, struct sockaddr_in to) {
     d.to = to;
     d.data[0] = BLK_BLOCK;
     send_data(d);
-    free(fragment);
+    //free(fragment);
   }
   pthread_mutex_unlock(&block->lock);
   pthread_cond_signal(&blockProduced);
-  //pthread_mutex_unlock(&sending_block);
+  pthread_mutex_unlock(&sending_block);
   return i;
 }
 

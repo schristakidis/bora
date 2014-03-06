@@ -76,12 +76,22 @@ struct timeval packet_send(int s) {
     d = prio_buf[(N_PRIO+c_prio-f_prio)%N_PRIO];
     f_prio--;
     c = 1;
+  pthread_mutex_lock(&send_lock);
+  if (f_send<S_TRESHOLD) {
+    pthread_cond_signal(&produceBlock);
+    puts("COND PRODUCEBLOCK");
+  }
+  pthread_mutex_unlock(&send_lock);
   }
   pthread_mutex_unlock(&prio_lock);
   if (!c) {
     pthread_mutex_lock(&send_lock);
     d = send_buf[(N_SEND+c_send-f_send)%N_SEND];
     f_send--;
+  if (f_send<S_TRESHOLD) {
+    pthread_cond_signal(&produceBlock);
+    puts("COND PRODUCEBLOCK");
+  }
     pthread_mutex_unlock(&send_lock);
   }
   gettimeofday(&t_end, NULL);

@@ -9,7 +9,7 @@
 #include "netencoder.h"
 
 static pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
-//static pthread_mutex_t sending_block = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t sending_block = PTHREAD_MUTEX_INITIALIZER;
 
 static Block * blockcache = NULL;
 
@@ -228,9 +228,9 @@ BlockData *get_block_data(uint16_t streamid, uint32_t blockid) {
 }
 
 int sendblock(uint16_t streamid, uint32_t blockid, struct sockaddr_in to) {
-  //pthread_mutex_lock(&sending_block);
+  pthread_mutex_lock(&sending_block);
   Block * block = findblock(streamid, blockid);
-  if (block == NULL) {pthread_cond_signal(&blockProduced); /*pthread_mutex_unlock(&sending_block);*/ return 0;}
+  if (block == NULL) {pthread_cond_signal(&blockProduced); pthread_mutex_unlock(&sending_block); return 0;}
   FragmentData fragment; // = malloc(sizeof(FragmentData));
   SendData d;
   uint16_t i;
@@ -259,7 +259,7 @@ int sendblock(uint16_t streamid, uint32_t blockid, struct sockaddr_in to) {
     d.to = to;
     d.data[0] = BLK_BLOCK;
     send_data(d);
-    //free(fragment);
+    free(fragment);
   }
   pthread_mutex_unlock(&block->lock);
   pthread_cond_signal(&blockProduced);

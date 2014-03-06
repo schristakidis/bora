@@ -172,6 +172,7 @@ PyObject* bora_BIter_iternext(PyObject *self)
     c = (c+1)%N_BITER;
     sem_post(&s_biter_empty);
     Py_END_ALLOW_THREADS
+    puts("GOTTABLOCK");
     if (!death) {
       PyObject *tmp = Py_BuildValue("ii", s, b);
       return tmp;

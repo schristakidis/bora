@@ -20,8 +20,8 @@ typedef struct __attribute__((__packed__)) {
   unsigned char flags;
   uint16_t streamid;
   uint32_t blockid;
-  uint8_t  fragmentid;
-  uint8_t  fragments;
+  uint16_t  fragmentid;
+  uint16_t  fragments;
   uint16_t length;
 } FragmentHeader;
 
@@ -68,8 +68,8 @@ SendData encode_fragment(FragmentData * fragment) {
 	header->flags = BLK_BLOCK;
 	header->streamid = htons(fragment->streamid);
 	header->blockid = htonl(fragment->blockid);
-	header->fragmentid = fragment->fragmentid;
-	header->fragments = fragment->fragments;
+	header->fragmentid = htons(fragment->fragmentid);
+	header->fragments = htons(fragment->fragments);
 	header->length = htons(fragment->length);
 	memcpy(s.data+sizeof(FragmentHeader), fragment->data, fragment->length);
 	s.length = sizeof(FragmentHeader) + fragment->length;
@@ -89,8 +89,8 @@ FragmentData * decode_fragment(unsigned char * fragmentstring, ssize_t length) {
 	if (ret == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
 	ret->streamid = ntohs(((FragmentHeader*)fragmentstring)->streamid);
 	ret->blockid = ntohl(((FragmentHeader*)fragmentstring)->blockid);
-	ret->fragmentid = ((FragmentHeader*)fragmentstring)->fragmentid;
-	ret->fragments = ((FragmentHeader*)fragmentstring)->fragments;
+	ret->fragmentid = ntohs(((FragmentHeader*)fragmentstring)->fragmentid);
+	ret->fragments = ntohs(((FragmentHeader*)fragmentstring)->fragments);
 	ret->length = ntohs(((FragmentHeader*)fragmentstring)->length);
 	if (length != ret->length + (unsigned)sizeof(FragmentHeader)) {
 		fputs("MALFORMED FRAGMENT: LEN NOT MATCHING\r\n", stderr);

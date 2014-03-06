@@ -16,13 +16,12 @@
 int main (void) {
 
 init_bcache();
-printf("BCACHE %p\n", blockcache);
 
     unsigned char * a = malloc(20000);
     memset(a, 1, 20000);
     BlockData * bdata = malloc(sizeof(BlockData));
     bdata->data = (unsigned char *)a;
-    bdata->length = 20;
+    bdata->length = 11033;
 
 
   int s, i;
@@ -42,10 +41,8 @@ printf("BCACHE %p\n", blockcache);
 //sleep(100);
   addblock(1, 1, bdata);
   for (i=0;i<5000;i++) {
-  printf("\nadd %i %p %i\n", addblock(1,i,bdata), blockcache, i);
+  printf("\nadd %i  %i\n", addblock(1,i,bdata), i);
   }
-  Block * found = findblock(1,9);
-  printf("9:%p ->next:%p", found, found->next);
   puts("OVER");
   BlockIDList listblock = get_complete_block_list();
   printf("LIST: %i\n", listblock.length);
@@ -55,7 +52,7 @@ printf("BCACHE %p\n", blockcache);
       printf("%i %i\n", listblock.blist[i].blockid,listblock.blist[i].streamid );
     }
   for (i=0;i<2;i++) {
-  printf("\ndel %i %p %i\n", deleteblock(1,i), blockcache, i);
+  printf("\ndel %i  %i\n", deleteblock(1,i), i);
   }
   listblock = get_complete_block_list();
   printf("LIST: %i\n", listblock.length);
@@ -63,8 +60,8 @@ printf("BCACHE %p\n", blockcache);
       //PyTuple_SetItem(ret, i, Py_BuildValue("{sisi}", "sid", blist.blist[i].streamid, "bid", blist.blist[i].blockid));
       printf("%i %i\n", listblock.blist[i].blockid,listblock.blist[i].streamid );
   }
-  printf("\ndel %i %p %i\n", deleteblock(1,9), blockcache, 9);
-  printf("\ndel %i %p %i\n", deleteblock(1,6), blockcache, 6);
+  printf("\ndel %i  %i\n", deleteblock(1,9), 9);
+  printf("\ndel %i  %i\n", deleteblock(1,6), 6);
   listblock = get_complete_block_list();
   printf("LIST: %i\n", listblock.length);
   for (i=0; i<listblock.length; i++) {
@@ -72,7 +69,7 @@ printf("BCACHE %p\n", blockcache);
       printf("%i %i\n", listblock.blist[i].blockid,listblock.blist[i].streamid );
   }
   for (i=0;i<5000;i++) {
-  printf("\ndel %i %p %i\n", deleteblock(1,i), blockcache, i);
+  printf("\ndel %i  %i\n", deleteblock(1,i), i);
   }
   puts("OVER");
   listblock = get_complete_block_list();

@@ -8,40 +8,265 @@
 #include "messages.h"
 #include "netencoder.h"
 
-//static Block * blockcache = NULL;
+static pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
+static pthread_mutex_t sending_block = PTHREAD_MUTEX_INITIALIZER;
 
-static pthread_mutex_t bclock = PTHREAD_MUTEX_INITIALIZER;
+static Block * blockcache = NULL;
 
 void init_bcache(void) {
-  blockcache = NULL;
+  return;
+  //blockcache = NULL;
 }
 
-
-// NO MUTEXES ____PRIVATE VERSION____
+/*returns LOCKED block - no rwlock -*/
 Block *
-_findblock(uint16_t streamid, uint32_t blockid) {
-  Block * block = blockcache;
-  while(block!=NULL) {
-    if (block->streamid == streamid &&
-        block->blockid  == blockid) {
-        return block;
+__findblock(uint16_t streamid, uint32_t blockid) {
+  Block * ret = blockcache;
+  while (ret != NULL) {
+    //pthread_mutex_lock(&ret->lock);
+    if (ret->id.streamid == streamid && ret->id.blockid == blockid) {
+      pthread_mutex_lock(&ret->lock);
+      return ret;
     }
-    block = block->next;
+    //pthread_mutex_unlock(&ret->lock);
+    ret = ret->next;
   }
   return NULL;
 }
 
-// VERSION WITH MUTEX
+/*returns LOCKED block*/
 Block *
 findblock(uint16_t streamid, uint32_t blockid) {
   Block * ret;
-  pthread_mutex_lock(&bclock);
-  ret = _findblock(streamid, blockid);
-  pthread_mutex_unlock(&bclock);
+  pthread_rwlock_rdlock(&rwlock);
+  ret = __findblock(streamid, blockid);
+  pthread_rwlock_unlock(&rwlock);
   return ret;
 }
 
-// NO MUTEXES ____PRIVATE VERSION____
+/* block->lock must be locked*/
+int
+__iscomplete(Block * block) {
+  uint16_t i;
+  if(block != NULL) {
+    i = block->fs.fn;// - 1;
+    while (i>0) {
+      i--;
+      if ((block->f)[i].have == 0) {
+        //printf("INCOMPLETEEEEEEE %d of %d\n", i, block->fs.fn);
+        pthread_mutex_unlock(&block->lock);
+        return 0;
+      }
+    }
+    pthread_mutex_unlock(&block->lock);
+  }
+  return 1;
+}
+
+int
+iscomplete(uint16_t streamid, uint32_t blockid) {
+  Block * block = findblock(streamid, blockid);
+  return __iscomplete(block);
+}
+
+Fragments
+calcfragments(uint32_t length) {
+  if (length<1) {
+    Fragments ret = (Fragments){ .fn = 0, .lastlen = 0};
+    return ret;
+  }
+  Fragments ret = (Fragments){ .fn = 0, .lastlen = MTU};
+  div_t result;
+  result = div(length, MTU);
+  ret.fn = result.quot;
+  if (result.rem) {
+    ret.fn++;
+    ret.lastlen = result.rem;
+  }
+  //printf("LEN %d last= %d fn = %d\n", length, ret.lastlen, ret.fn);
+  return ret;
+}
+
+int
+addblock(uint16_t streamid, uint32_t blockid, BlockData * blockdata) {
+  int i;
+  Block * block = findblock(streamid, blockid);
+  if (block) {
+    pthread_mutex_unlock(&block->lock);
+    return 0;
+  }
+  block = (Block*)malloc(sizeof(Block));
+  if (block == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
+  block->id.streamid = streamid;
+  block->id.blockid = blockid;
+  block->content.data = (unsigned char*)malloc(sizeof(unsigned char)*blockdata->length);
+  if (block->content.data == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
+  memcpy(block->content.data, blockdata->data, blockdata->length);
+  block->content.length = blockdata->length;
+  block->fs = (Fragments)calcfragments(blockdata->length);
+  block->f = (BlockFragment*)malloc(block->fs.fn * sizeof(BlockFragment));
+  if (block->f == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
+  for (i=0; i<block->fs.fn; i++) {
+    block->f[i].have = 1;
+    //printf("HAVE: %d, i: %d, fn: %d\n", block->f[i].have, i, block->fs.fn);
+    block->f[i].host = (struct sockaddr_in){0};
+    block->f[i].ts = (struct timeval){0};
+  }
+  pthread_mutex_init ( &block->lock, NULL);
+  pthread_rwlock_wrlock(&rwlock);
+  block->next = blockcache;
+  blockcache = block;
+  pthread_rwlock_unlock(&rwlock);
+  return 1;
+}
+
+int
+deleteblock(uint16_t streamid, uint32_t blockid) {
+    Block *prev, *current;
+
+    pthread_rwlock_wrlock(&rwlock);
+    prev = blockcache;
+    if (prev==NULL) {
+      pthread_rwlock_unlock(&rwlock);
+      return BD_FAILURE;
+    }
+    while ((current = prev->next) != NULL) {
+        if (current->id.streamid == streamid && current->id.blockid == blockid) {
+            prev->next = current->next;
+            current->next = NULL;
+            pthread_rwlock_unlock(&rwlock);
+            pthread_mutex_lock(&current->lock);
+            free(current->content.data);
+            free(current->f);
+            free(current);
+            return BD_SUCCESS;
+        }
+        prev = current;
+    }
+    pthread_rwlock_unlock(&rwlock);
+    return BD_FAILURE;
+}
+
+int addfragment(FragmentData * fragment, struct sockaddr_in host, struct timeval ts) {
+    uint16_t i;
+	Block * block = findblock(fragment->streamid, fragment->blockid);
+	//printf("FRAGMENT RECEIVED: sid:%d, bid:%d, fid:%d, fs:%d, len:%d\n", fragment->streamid, fragment->blockid, fragment->fragmentid, fragment->fragments, fragment->length);
+	if (block==NULL) {
+	  block = (Block*)malloc(sizeof(Block));
+      if (block == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
+      block->fs.fn = fragment->fragments;
+      block->f = (BlockFragment*)malloc(block->fs.fn * sizeof(BlockFragment));
+      if (block->f == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
+      for (i=0;i<block->fs.fn;i++) {
+        (block->f)[i].have = 0;
+      }
+      block->content.length = MTU*block->fs.fn;
+      block->content.data = (unsigned char *)malloc(sizeof(unsigned char)*MTU*block->fs.fn);
+      if (block->content.data == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
+      memset(block->content.data, 0, sizeof(unsigned char)*MTU*block->fs.fn);
+      block->id.streamid = fragment->streamid;
+      block->id.blockid = fragment->blockid;
+      pthread_mutex_init ( &block->lock, NULL);
+      block->f[fragment->fragmentid] = (BlockFragment){ .have = 1, .ts = ts, .host = host };
+      if (fragment->fragmentid == (fragment->fragments)-1) {
+        block->fs.lastlen = fragment->length;
+      } else {
+        if (fragment->length != MTU) {
+          pthread_mutex_unlock(&block->lock);
+          //puts("BAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADDDDLEEEEEEEEEEEEEEEEEEEEEEEEEEENNN");
+          return F_BAD_LEN;
+        }
+      }
+      memcpy(block->content.data + (MTU * fragment->fragmentid), fragment->data, fragment->length);
+      pthread_rwlock_wrlock(&rwlock);
+      block->next = blockcache;
+      blockcache = block;
+      pthread_rwlock_unlock(&rwlock);
+      return F_ADDED;
+	} else {
+      if ((block->f)[fragment->fragmentid].have == 1) {
+        pthread_mutex_unlock(&block->lock);
+        return F_DUPLICATE;
+      }
+      if (block->fs.fn != fragment->fragments) {
+        pthread_mutex_unlock(&block->lock);
+        return F_FRAGMENTS_MISMATCH;
+      }
+      if (fragment->fragmentid >= block->fs.fn) {
+        pthread_mutex_unlock(&block->lock);
+        return F_FRAGMENTID_OUTOFBOUNDS;
+      }
+      if (fragment->fragmentid < block->fs.fn -1 && fragment->length!=MTU) {
+        pthread_mutex_unlock(&block->lock);
+        return F_BAD_LEN;
+      }
+      if (fragment->fragmentid == fragment->fragments-1) {
+        //puts("LAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAASSSTTTTT\n");
+        block->fs.lastlen = fragment->length;
+        block->content.length = ((block->fs.fn-1)*MTU) + block->fs.lastlen;
+      }
+      (block->f)[fragment->fragmentid] = (BlockFragment){ .have = 1, .ts = ts, .host = host };
+      memcpy(block->content.data + (MTU * fragment->fragmentid), fragment->data, fragment->length);
+      //printf("\nFRAGMENT RECEIVED\n len:%d fid:%d fn:%d\n", fragment->length, fragment->fragmentid, fragment->fragments);
+      pthread_mutex_unlock(&block->lock);
+      return F_ADDED;
+	}
+}
+
+BlockData *get_block_data(uint16_t streamid, uint32_t blockid) {
+  Block * block = findblock(streamid, blockid);
+  if (block == NULL) {return NULL;}
+  BlockData * ret = malloc(sizeof(BlockData));
+  if (ret == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
+  ret->length = block->content.length;
+  ret->data = (unsigned char*) malloc(ret->length);
+  if (ret->data == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
+  //printf("LENNNN: %d FN:%d LAST:%d\n", ret->length, block->fs.fn, block->fs.lastlen);
+  memcpy(ret->data, block->content.data, ret->length);
+  pthread_mutex_unlock(&block->lock);
+  return ret;
+}
+
+int sendblock(uint16_t streamid, uint32_t blockid, struct sockaddr_in to) {
+  pthread_mutex_lock(&sending_block);
+  Block * block = findblock(streamid, blockid);
+  if (block == NULL) {pthread_cond_signal(&blockProduced); pthread_mutex_unlock(&sending_block); return 0;}
+  FragmentData fragment; // = malloc(sizeof(FragmentData));
+  SendData d;
+  uint16_t i;
+  for (i=0;i<block->fs.fn;i++) {
+    //fragment = malloc(sizeof(FragmentData));
+    if (i+1 == block->fs.fn) {
+      //printf("LAST FRAGMENT\n");
+      fragment = (FragmentData){.streamid = streamid, .blockid = blockid, .fragmentid = i, .fragments = block->fs.fn, .length = block->fs.lastlen, .data = block->content.data + MTU*i};
+      //fragment->streamid = streamid;
+      //fragment->blockid = blockid;
+      //fragment->fragmentid = i;
+      //fragment->fragments = block->fs.fn;
+      //fragment->length = block->fs.lastlen;
+      //fragment->data = block->content.data + MTU*i;
+    } else {
+      //printf("FRAGMENT %d\n", i);
+      //fragment->streamid = streamid;
+      //fragment->blockid = blockid;
+      //fragment->fragmentid = i;
+      //fragment->fragments = block->fs.fn;
+      //fragment->length = MTU;
+      //fragment->data = block->content.data + MTU*i;
+      fragment = (FragmentData){.streamid = streamid, .blockid = blockid, .fragmentid = i, .fragments = block->fs.fn, .length = MTU, .data = block->content.data + MTU*i};
+    }
+    d = encode_fragment(&fragment);
+    d.to = to;
+    d.data[0] = BLK_BLOCK;
+    send_data(d);
+    //free(fragment);
+  }
+  pthread_mutex_unlock(&block->lock);
+  pthread_cond_signal(&blockProduced);
+  pthread_mutex_unlock(&sending_block);
+  return i;
+}
+
 int __get_blockcache_size(void) {
   int ret = 0;
   Block * block = blockcache;
@@ -52,329 +277,54 @@ int __get_blockcache_size(void) {
   return ret;
 }
 
-BlockFragment * getfragment(Block * block, uint8_t  fragmentid) {
-	BlockFragment * cursor;
-	cursor = block->content;
-	while (cursor) {
-		if (cursor->data) {
-			if (cursor->data->fragmentid == fragmentid) {
-				return cursor;
-			}
-		}
-		cursor = cursor->next;
-	}
-	return NULL;
-}
-
-// NO MUTEXES ____PRIVATE VERSION____
-int __iscomplete(Block * block) {
-	int i;
-	if (block) {
-		if (block->content) {
-			if (block->content->data) {
-			   for (i = 0; i < block->content->data->fragments; i++) {
-				   if (!getfragment(block, i)) {
-					   return 0;
-				   }
-			   }
-			   return 1;
-		    }
-	    }
-    }
-	return 0;
-}
-
-int
-iscomplete(uint16_t streamid, uint32_t blockid) {
-	int i;
-	Block * block;
-	pthread_mutex_lock(&bclock);
-	block = _findblock(streamid, blockid);
-	if (block) {
-		if (block->content) {
-			if (block->content->data) {
-			   for (i = 0; i < block->content->data->fragments; i++) {
-				   if (!getfragment(block, i)) {
-				       pthread_mutex_unlock(&bclock);
-					   return 0;
-				   }
-			   }
-			   pthread_mutex_unlock(&bclock);
-			   return 1;
-		    }
-	    }
-    }
-    pthread_mutex_unlock(&bclock);
-	return 0;
-}
-
-int
-addblock(uint16_t streamid, uint32_t blockid, BlockData * blockdata) {
-  if (findblock(streamid, blockid)) {
-    return 0;
-  }
-  unsigned char * data = blockdata->data;
-  int length = blockdata->length;
-  int i, fnum;
-  div_t result;
-  result = div(length, MTU);
-  fnum = result.quot;
-  if (result.rem) { fnum++;}
-  Block * ret = (Block*)malloc(sizeof(Block));
-  if (ret == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
-  ret->streamid = streamid;
-  ret->blockid = blockid;
-  ret->content = NULL;
-  for (i=0; i<fnum; i++) {
-    BlockFragment * fragment = (BlockFragment*)malloc(sizeof(BlockFragment));
-    if (fragment == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
-    fragment->next = ret->content;
-    bzero(&fragment->host, sizeof(struct sockaddr_in));
-    bzero(&fragment->ts, sizeof(struct timeval));
-    FragmentData * fdata = (FragmentData*)malloc(sizeof(FragmentData));
-    if (fdata == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
-    fragment->data = fdata;
-    fdata->streamid = streamid;
-    fdata->blockid = blockid;
-    fdata->fragmentid = i;
-    fdata->fragments = fnum;
-    fdata->length = MTU;
-    if (i+1==fnum && result.rem>0) { fdata->length = result.rem;}
-    fdata->data = (unsigned char*)malloc(sizeof(unsigned char)*fdata->length);
-    if (fdata->data == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
-    memcpy(fdata->data, data+(MTU*i), fdata->length);
-    ret->content = fragment;
-  }
-  pthread_mutex_lock(&bclock);
-  ret->next = blockcache;
-  blockcache = ret;
-  pthread_mutex_unlock(&bclock);
-  return 1;
-}
-
-int
-deleteblock(uint16_t streamid, uint32_t blockid) {
-  pthread_mutex_lock(&bclock);
-  if (blockcache==NULL) {pthread_mutex_unlock(&bclock); return BD_FAILURE;}
-  Block * haz = _findblock(streamid,blockid);
-  Block * prev;
-  BlockFragment * n;
-  if (haz==blockcache && haz->next==NULL) {
-    blockcache = NULL;
-  }
-  if (haz!=NULL) {
-      if (haz->content) {
-        n = haz->content;
-        while (n!=NULL) {
-          if (n->data!=NULL) {
-            free(n->data->data);
-            free(n->data);
-          }
-          n = n->next;
-        }
-        free(haz->content);
-      }
-      if (haz == blockcache && haz->next) {
-        blockcache = haz->next;
-        pthread_mutex_unlock(&bclock);
-        free(haz);
-        return BD_SUCCESS;
-      }
-      prev = blockcache;
-      while (prev!=NULL) {
-        if (prev->next==haz) {break;}
-        prev = prev->next;
-      }
-      if (prev!=NULL) {prev->next = haz->next;}
-      free(haz);
-      pthread_mutex_unlock(&bclock);
-      return BD_SUCCESS;
-  }
-  pthread_mutex_unlock(&bclock);
-  return BD_FAILURE;
-}
-
-int addfragment(FragmentData * fragment, struct sockaddr_in host, struct timeval ts) {
-	BlockFragment * newfrag;
-    pthread_mutex_lock(&bclock);
-	Block * block = _findblock(fragment->streamid, fragment->blockid);
-	//IF BLOCK EXISTS
-	if (block) {
-		if (getfragment(block, fragment->fragmentid)) {
-            printf("===============================\nDUPLICATE FRAGMENT %d %d\n====================================\n", fragment->blockid, fragment->fragmentid);
-
-			free(fragment->data);
-			free(fragment);
-			//puts ("*DUPPPP");
-            pthread_mutex_unlock(&bclock);
-			return F_DUPLICATE;
-		} else {
-			if (block->content->data->fragments != fragment->fragments) {
-			    puts("MMATCH\n");
-			    free(fragment->data);
-			    free(fragment);
-                pthread_mutex_unlock(&bclock);
-                //puts("*MMATCH");
-				return F_FRAGMENTS_MISMATCH;
-			} else if (block->content->data->fragmentid >= fragment->fragments) {
-			    puts("OOB\n");
-			    free(fragment->data);
-			    free(fragment);
-                pthread_mutex_unlock(&bclock);
-                //puts("*OUTBOUND");
-			    return F_FRAGMENTID_OUTOFBOUNDS;
-			}
-			newfrag = (BlockFragment*) malloc(sizeof(BlockFragment));
-            if (newfrag == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
-			newfrag->data = fragment;
-			newfrag->next = block->content;
-			newfrag->host = host;
-			newfrag->ts = ts;
-			block->content = newfrag;
-		}
-	//IF BLOCK NO EXIST (first fragment received)
-	} else {
-		block = (Block*) malloc(sizeof(Block));
-        if (block == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
-		block->streamid = fragment->streamid;
-		block->blockid = fragment->blockid;
-		block->content = (BlockFragment*) malloc(sizeof(BlockFragment));
-        if (block->content == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
-			block->content->data = fragment;
-			block->content->next = NULL;
-			block->content->host = host;
-			block->content->ts = ts;
-		block->next = blockcache;
-		blockcache = block;
-	}
-    pthread_mutex_unlock(&bclock);
-    puts("FADDED");
-	return F_ADDED;
-}
-
-BlockData *get_block_data(uint16_t streamid, uint32_t blockid) {
-  pthread_mutex_lock(&bclock);
-  Block * block = _findblock(streamid, blockid);
-  BlockFragment * bf;
-  if (block == NULL) {pthread_mutex_unlock(&bclock); return NULL;}
-  BlockData * ret = malloc(sizeof(BlockData));
-  if (ret == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
-  ret->length = 0;
-  ret->data = (unsigned char*) malloc(sizeof(unsigned char)*MTU*block->content->data->fragments);
-  if (ret->data == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
-  int i;
-  for (i=0; i<block->content->data->fragments; i++) {
-    bf = getfragment(block, i);
-    if (bf == NULL) {
-      fputs("INCOMPLETE BLOCK\r\n", stderr);
-      free(ret->data);
-      free(ret);
-      //pthread_mutex_unlock(&bclock);
-      return NULL;
-    }
-    memcpy(ret->data+(MTU*i), bf->data->data, bf->data->length);
-    ret->length += bf->data->length;
-  }
-  pthread_mutex_unlock(&bclock);
-  return ret;
-}
-
-int sendblock(uint16_t streamid, uint32_t blockid, struct sockaddr_in to) {
-  pthread_mutex_lock(&bclock);
-  puts("====PRODUCING");
-  Block * block = _findblock(streamid, blockid);
-  BlockFragment * bf;
-  SendData d;
-  if (block == NULL) {pthread_mutex_unlock(&bclock); return 0;}
-  int i;
-  for (i=0; i<block->content->data->fragments; i++) {
-    bf = getfragment(block, i);
-    if (bf == NULL) {
-      fputs("INCOMPLETE BLOCK\r\n", stderr);
-      pthread_mutex_unlock(&bclock);
-      return 0;
-    }
-    d = encode_fragment(bf->data);
-    d.to = to;
-    d.data[0] = BLK_BLOCK;
-    send_data(d);
-  }
-  pthread_cond_signal(&blockProduced);
-  puts("++++BLOCKPRODUCED");
-  pthread_mutex_unlock(&bclock);
-  return i;
-}
-
-int get_blockcache_size(void) {
-  int ret = 0;
-  pthread_mutex_lock(&bclock);
-  ret = __get_blockcache_size();
-  pthread_mutex_unlock(&bclock);
-  return ret;
-}
-
 BlockIDList get_incomplete_block_list(void) {
   Block * cur;
   BlockIDList ret;
-  ret.length = get_blockcache_size();
-  printf("lenght:%d", ret.length);
-  if (!ret.length) {
+  int len;
+  ret.length = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  len = __get_blockcache_size();
+  if (!len) {
     ret.blist = NULL;
+    pthread_rwlock_unlock(&rwlock);
     return ret;
   }
-  ret.blist = malloc(sizeof(BlockID)*ret.length);
-  ret.length = 0;
-  pthread_mutex_lock(&bclock);
   cur = blockcache;
-  while (cur) {
+  ret.blist = malloc(sizeof(BlockID)*len);
+  while (cur != NULL) {
     if (!__iscomplete(cur)) {
-      ret.blist[ret.length].blockid = cur->blockid;
-      ret.blist[ret.length].streamid = cur->streamid;
+      ret.blist[ret.length].blockid = cur->id.blockid;
+      ret.blist[ret.length].streamid = cur->id.streamid;
       ret.length++;
     }
     cur = cur->next;
   }
-  pthread_mutex_unlock(&bclock);
+  pthread_rwlock_unlock(&rwlock);
   return ret;
-
 }
 
 BlockIDList get_complete_block_list(void) {
   Block * cur;
   BlockIDList ret;
-  ret.length = get_blockcache_size();
-  if (!ret.length) {
+  int len;
+  ret.length = 0;
+  pthread_rwlock_rdlock(&rwlock);
+  len = __get_blockcache_size();
+  if (!len) {
     ret.blist = NULL;
+    pthread_rwlock_unlock(&rwlock);
     return ret;
   }
-  ret.blist = malloc(sizeof(BlockID)*ret.length);
-  ret.length = 0;
-  pthread_mutex_lock(&bclock);
   cur = blockcache;
-  while (cur) {
+  ret.blist = malloc(sizeof(BlockID)*len);
+  while (cur != NULL) {
     if (__iscomplete(cur)) {
-      ret.blist[ret.length].blockid = cur->blockid;
-      ret.blist[ret.length].streamid = cur->streamid;
+      ret.blist[ret.length].blockid = cur->id.blockid;
+      ret.blist[ret.length].streamid = cur->id.streamid;
       ret.length++;
     }
     cur = cur->next;
   }
-  pthread_mutex_unlock(&bclock);
-
+  pthread_rwlock_unlock(&rwlock);
   return ret;
-
 }
-
-#ifdef TEST
-int
-main() {
-  char data[15] = "PERDItEMPO";
-  int length = strlen(data);
-  int streamid = 132;
-  int blockid = 223;
-  addblock(streamid, blockid, data, length);
-  printf("%d %d\n", length, deleteblock(streamid, blockid));
-  puts("ANIMALIII");
-  return EXIT_SUCCESS;
-}
-#endif

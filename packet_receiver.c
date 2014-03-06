@@ -116,18 +116,28 @@ void * packet_processor(void*args) {
               case F_DUPLICATE:
                 stats_r[I_DUPE_COUNTER]++;
                 stats_r[I_DUPE_DATA_COUNTER] += buffer[c].buflen;
+                puts("DUPLICATE FRAGMENT\n");
                 break;
               case F_FRAGMENTID_OUTOFBOUNDS:
                 stats_r[I_GARBAGE] += buffer[c].buflen;
+                puts("OUTOFBOUNDSSS\n");
                 break;
               case F_FRAGMENTS_MISMATCH:
                 stats_r[I_GARBAGE] += buffer[c].buflen;
+                puts("MISMATCH\n");
+                break;
+              case F_BAD_LEN:
+                stats_r[I_GARBAGE] += buffer[c].buflen;
+                puts("BAD LEN\n");
                 break;
               case F_ADDED:
+                //puts("FADDED");
                 if(iscomplete(fragment->streamid, fragment->blockid)) {
                 block_completed(fragment->streamid, fragment->blockid);}
                 break;
             }
+            free(fragment->data);
+            free(fragment);
           } else {
             buffer[c].buf[0] = 0x00;
             stats_r[I_GARBAGE] += buffer[c].buflen;

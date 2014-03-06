@@ -81,7 +81,7 @@ struct timeval packet_send(int s) {
     pthread_mutex_lock(&send_lock);
     d = send_buf[(N_SEND+c_send-f_send)%N_SEND];
     f_send--;
-    printf("SEND BUFFER: %d\n", f_send);
+    //printf("SEND BUFFER: %d\n", f_send);
     if (f_send<S_TRESHOLD) {
       pthread_cond_signal(&produceBlock);
       puts("COND PRODUCEBLOCK");

@@ -9,7 +9,7 @@
 #include "netencoder.h"
 
 static pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
-static pthread_mutex_t sending_block = PTHREAD_MUTEX_INITIALIZER;
+//static pthread_mutex_t sending_block = PTHREAD_MUTEX_INITIALIZER;
 
 static Block * blockcache = NULL;
 
@@ -228,9 +228,9 @@ BlockData *get_block_data(uint16_t streamid, uint32_t blockid) {
 }
 
 int sendblock(uint16_t streamid, uint32_t blockid, struct sockaddr_in to) {
-  pthread_mutex_lock(&sending_block);
+  //pthread_mutex_lock(&sending_block);
   Block * block = findblock(streamid, blockid);
-  if (block == NULL) {pthread_cond_signal(&blockProduced); pthread_mutex_unlock(&sending_block); return 0;}
+  if (block == NULL) {pthread_cond_signal(&blockProduced); /*pthread_mutex_unlock(&sending_block);*/ return 0;}
   FragmentData fragment; // = malloc(sizeof(FragmentData));
   SendData d;
   uint16_t i;
@@ -263,7 +263,7 @@ int sendblock(uint16_t streamid, uint32_t blockid, struct sockaddr_in to) {
   }
   pthread_mutex_unlock(&block->lock);
   pthread_cond_signal(&blockProduced);
-  pthread_mutex_unlock(&sending_block);
+  //pthread_mutex_unlock(&sending_block);
   return i;
 }
 
@@ -292,12 +292,14 @@ BlockIDList get_incomplete_block_list(void) {
   cur = blockcache;
   ret.blist = malloc(sizeof(BlockID)*len);
   while (cur != NULL) {
+    pthread_mutex_lock(&cur->lock);
     if (!__iscomplete(cur)) {
       ret.blist[ret.length].blockid = cur->id.blockid;
       ret.blist[ret.length].streamid = cur->id.streamid;
       ret.length++;
     }
     cur = cur->next;
+
   }
   pthread_rwlock_unlock(&rwlock);
   return ret;
@@ -318,6 +320,7 @@ BlockIDList get_complete_block_list(void) {
   cur = blockcache;
   ret.blist = malloc(sizeof(BlockID)*len);
   while (cur != NULL) {
+    pthread_mutex_lock(&cur->lock);
     if (__iscomplete(cur)) {
       ret.blist[ret.length].blockid = cur->id.blockid;
       ret.blist[ret.length].streamid = cur->id.streamid;

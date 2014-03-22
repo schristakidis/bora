@@ -9,7 +9,7 @@ if system() == 'Windows':
                     include_dirs = ['./', '/usr/include/'],
                     libraries = ['pthreadgc2', 'Ws2_32'],
                     library_dirs = ['/usr/local/lib'],
-                    sources = ['bora.c', 'blockcache.c', 'netencoder.c', 'ack.c', 'ack_received.c', 'packet_receiver.c', 'packet_sender.c', 'biter_bridge.c', 'bpuller_bridge.c', 'stats_bridge.c'])
+                    sources = ['bora.c', 'blockcache.c', 'netencoder.c', 'ack.c', 'ack_received.c', 'packet_receiver.c', 'packet_sender.c', 'biter_bridge.c', 'bpuller_bridge.c', 'stats_bridge.c', 'recv_stats.c'])
 else:
 	module1 = Extension('bora',
                     define_macros = [('DEF1', '1'),
@@ -18,7 +18,7 @@ else:
                     include_dirs = ['./', '/usr/include/'],
                     libraries = ['pthread'],
                     library_dirs = ['/usr/local/lib'],
-                    sources = ['bora.c', 'blockcache.c', 'netencoder.c', 'ack.c', 'ack_received.c', 'packet_receiver.c', 'packet_sender.c', 'biter_bridge.c', 'bpuller_bridge.c', 'stats_bridge.c'])
+                    sources = ['bora.c', 'blockcache.c', 'netencoder.c', 'ack.c', 'ack_received.c', 'packet_receiver.c', 'packet_sender.c', 'biter_bridge.c', 'bpuller_bridge.c', 'stats_bridge.c', 'recv_stats.c'])
 
 setup (name = 'bora',
        version = '0.01',

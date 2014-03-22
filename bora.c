@@ -24,6 +24,8 @@
 #include "stats_bridge.h"
 #include "packet_sender.h"
 #include "packet_receiver.h"
+#include "recv_stats.h"
+#include "queue.h"
 
 static int sock = 0;
 
@@ -309,6 +311,7 @@ static PyObject *listen_on( PyObject * self, PyObject * value )
         init_receiver(sock);
         init_biter();
         init_bpuller();
+        init_recv_stats();
 
 
         Py_RETURN_NONE;
@@ -489,6 +492,57 @@ static PyObject *get_out_stats( PyObject * self, PyObject * value )
     return ret;
 }
 
+static PyObject *get_bw_stats( PyObject * self, PyObject * args )
+{
+    int i, j;
+    PyObject* ret;
+    BWEstimation * band;
+    BWEstimation * band_temp;
+    BW * b;
+    BW * b_temp;
+    struct bwstruct bwlist = fetch_bw_estimations();
+
+    i = 0;
+    SLIST_FOREACH(band, &bwlist, entries)
+      i++;
+
+    ret = PyList_New((Py_ssize_t)i);
+
+    i = 0;
+    SLIST_FOREACH_SAFE(band, &bwlist, entries, band_temp) {
+
+
+
+        j = 0;
+        SLIST_FOREACH(b, &band->bandwidth, entries)
+            j++;
+
+        PyObject* l = PyList_New((Py_ssize_t)j);
+
+        j = 0;
+        SLIST_FOREACH_SAFE(b, &band->bandwidth, entries, b_temp) {
+            PyList_SET_ITEM(l, j, Py_BuildValue("{sksO}", "bw", (unsigned long int)b->bw, "tv", Py_BuildValue("{sisi}", "sec", b->tv.tv_sec, "usec", b->tv.tv_usec)));
+            SLIST_REMOVE(&band->bandwidth, b, BW, entries);
+            free(b);
+            j++;
+        }
+
+
+        char ip_addr[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &(band->from.sin_addr), ip_addr, INET_ADDRSTRLEN);
+
+        PyList_SET_ITEM(ret, i, Py_BuildValue("{sssHsO}", "ip", ip_addr, "port", ntohs(band->from.sin_port), "list", l));
+        SLIST_REMOVE(&bwlist, band, BWEstimation, entries);
+        free(band);
+
+        i++;
+
+    }
+
+
+    return ret;
+}
+
 static PyObject *get_block_content( PyObject * self, PyObject * args )
 {
     int s_id;
@@ -522,6 +576,8 @@ static char in_stats_docs[] =
     "get_in_stats( reset ): Get incoming stats, if reset is not 0 counters get reset\n";
 static char out_stats_docs[] =
     "get_out_stats( reset ): Get outgoing stats, if reset is not 0 counters get reset\n";
+static char bw_stats_docs[] =
+    "get_bw_stats( ): Get bandwidth stats, stats are reset each time function is called\n";
 static char die_docs[] =
     "die(  ): Kill generators\n";
 static char biter_docs[] =
@@ -549,6 +605,7 @@ static PyMethodDef BoraMethods[] = {
     {"listen_on", listen_on, METH_O, listen_docs},
     {"get_in_stats", get_in_stats, METH_O, in_stats_docs},
     {"get_out_stats", get_out_stats, METH_O, out_stats_docs},
+    {"get_bw_stats", get_bw_stats, METH_NOARGS, bw_stats_docs},
     {"die", die, METH_NOARGS, die_docs},
     {"send_block", send_block, METH_VARARGS, send_block_docs},
     {"add_block", add_block, METH_VARARGS, add_block_docs},

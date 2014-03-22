@@ -9,7 +9,7 @@
 #include "netencoder.h"
 
 static pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
-static pthread_mutex_t sending_block = PTHREAD_MUTEX_INITIALIZER;
+//static pthread_mutex_t sending_block = PTHREAD_MUTEX_INITIALIZER;
 
 static Block * blockcache = NULL;
 
@@ -135,7 +135,7 @@ deleteblock(uint16_t streamid, uint32_t blockid) {
             prev->next = current->next;
             current->next = NULL;
             pthread_rwlock_unlock(&rwlock);
-            pthread_mutex_lock(&current->lock);
+            pthread_mutex_destroy(&current->lock);
             free(current->content.data);
             free(current->f);
             free(current);
@@ -228,9 +228,9 @@ BlockData *get_block_data(uint16_t streamid, uint32_t blockid) {
 }
 
 int sendblock(uint16_t streamid, uint32_t blockid, struct sockaddr_in to) {
-  pthread_mutex_lock(&sending_block);
+  //pthread_mutex_lock(&sending_block);
   Block * block = findblock(streamid, blockid);
-  if (block == NULL) {pthread_cond_signal(&blockProduced); pthread_mutex_unlock(&sending_block); return 0;}
+  if (block == NULL) {pthread_cond_signal(&blockProduced); /*pthread_mutex_unlock(&sending_block);*/ return 0;}
   FragmentData fragment; // = malloc(sizeof(FragmentData));
   SendData d;
   uint16_t i;
@@ -239,31 +239,21 @@ int sendblock(uint16_t streamid, uint32_t blockid, struct sockaddr_in to) {
     if (i+1 == block->fs.fn) {
       //printf("LAST FRAGMENT\n");
       fragment = (FragmentData){.streamid = streamid, .blockid = blockid, .fragmentid = i, .fragments = block->fs.fn, .length = block->fs.lastlen, .data = block->content.data + MTU*i};
-      //fragment->streamid = streamid;
-      //fragment->blockid = blockid;
-      //fragment->fragmentid = i;
-      //fragment->fragments = block->fs.fn;
-      //fragment->length = block->fs.lastlen;
-      //fragment->data = block->content.data + MTU*i;
+
     } else {
       //printf("FRAGMENT %d\n", i);
-      //fragment->streamid = streamid;
-      //fragment->blockid = blockid;
-      //fragment->fragmentid = i;
-      //fragment->fragments = block->fs.fn;
-      //fragment->length = MTU;
-      //fragment->data = block->content.data + MTU*i;
       fragment = (FragmentData){.streamid = streamid, .blockid = blockid, .fragmentid = i, .fragments = block->fs.fn, .length = MTU, .data = block->content.data + MTU*i};
     }
     d = encode_fragment(&fragment);
     d.to = to;
+    //d.data[0] = BLK_BLOCK_ACK;
     d.data[0] = BLK_BLOCK;
     send_data(d);
     //free(fragment);
   }
   pthread_mutex_unlock(&block->lock);
   pthread_cond_signal(&blockProduced);
-  pthread_mutex_unlock(&sending_block);
+  //pthread_mutex_unlock(&sending_block);
   return i;
 }
 

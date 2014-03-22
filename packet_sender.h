@@ -16,9 +16,10 @@ pthread_mutex_t bpLock; // = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t stat_lock_s; // = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct SendData {
-  unsigned char * data;
+  unsigned char data[1500];
   uint32_t length;
   struct sockaddr_in to;
+  uint32_t sleeptime;
 } SendData;
 
 

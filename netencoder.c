@@ -28,6 +28,8 @@ typedef struct __attribute__((__packed__)) {
 typedef struct __attribute__((__packed__)) {
   unsigned char flags;
   uint16_t seq;
+  uint32_t sec;
+  uint32_t usec;
 } AckPacket;
 
 int get_fragment_size(FragmentData * fragment) {
@@ -62,8 +64,8 @@ int validate_block(unsigned char * blob, size_t l) {
 SendData encode_fragment(FragmentData * fragment) {
     SendData s;
 	FragmentHeader * header;
-	s.data = (unsigned char*) malloc(1500);
-	if (s.data == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
+	//s.data = (unsigned char*) malloc(1500);
+	//if (s.data == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
 	header = (FragmentHeader *) s.data;
 	header->flags = BLK_BLOCK;
 	header->streamid = htons(fragment->streamid);
@@ -105,12 +107,17 @@ FragmentData * decode_fragment(unsigned char * fragmentstring, ssize_t length) {
 
 SendData encode_ack(uint16_t seq) {
     SendData s;
-    s.data = (unsigned char*) malloc(sizeof(AckPacket));
-	if (s.data == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
+    //s.data = (unsigned char*) malloc(sizeof(AckPacket));
+	//if (s.data == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
 	((AckPacket*)s.data)->flags = BLK_ACK;
 	((AckPacket*)s.data)->seq = seq;
 	s.length = sizeof(AckPacket);
 	return s;
+}
+
+void append_ack_ts(SendData *s, struct timeval *ts) {
+    ((AckPacket*)s->data)->sec = htonl((uint32_t)ts->tv_sec);
+    ((AckPacket*)s->data)->usec = htonl((uint32_t)ts->tv_usec);
 }
 
 AckReceived * decode_ack(unsigned char* ack_r, ssize_t length) {
@@ -121,6 +128,8 @@ AckReceived * decode_ack(unsigned char* ack_r, ssize_t length) {
 	if (ret == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
     ret->flags = ((AckPacket*) ack_r)->flags;
     ret->seq = ((AckPacket*) ack_r)->seq;
+    ret->sec = ntohl(((AckPacket*) ack_r)->sec);
+    ret->usec = ntohl(((AckPacket*) ack_r)->usec);
     return ret;
 }
 

@@ -20,9 +20,10 @@
 #include "blockcache.h"
 #include "biter_bridge.h"
 #include "stats_bridge.h"
+#include "recv_stats.h"
 
-struct timeval prev_recv = {0};
-int prev_recv_len = 0;
+//struct timeval prev_recv = {0};
+//int prev_recv_len = 0;
 
 
 
@@ -57,7 +58,7 @@ void * packet_receiver(void * socket) {
 void * packet_processor(void*args) {
   assert(args==NULL);
   uint8_t c = 0;
-  uint16_t seq;
+  AckCookie cookie;
   for (;;) {
     sem_wait(&bFull);
     pthread_mutex_lock(&stat_lock_r);
@@ -66,13 +67,15 @@ void * packet_processor(void*args) {
       if (buffer[c].buf[0] & BLK_NEED_ACK) {
         if (validate_block(&buffer[c].buf[0], buffer[c].buflen-ACKSIZE)) {
           // GET seq for ACK request
-          seq = strip_ack(buffer[c].buf, buffer[c].buflen);
+          cookie = strip_ack(buffer[c].buf, buffer[c].buflen);
+          //printf("COOKIE %i\n", cookie.seq);
           // REDUCE buflen
           buffer[c].buflen -= ACKSIZE;
           stats_r[I_DATA_COUNTER] += ACKSIZE;
           // MAKE ACKnowledge packet
           SendData s;
-          s = encode_ack(seq);
+          s = encode_ack(cookie.seq);
+          append_ack_ts(&s, &buffer[c].tv);
           s.to = buffer[c].from;
           send_data(s);
 
@@ -89,7 +92,7 @@ void * packet_processor(void*args) {
           stats_r[I_ACK_COUNTER]++;
           stats_r[I_ACK_DATA_COUNTER] += buffer[c].buflen;
           AckReceived * ack_r = decode_ack(&buffer[c].buf[0], buffer[c].buflen);
-          Ack * pop = pop_ack(ack_r->seq);
+          Ack * pop = pop_ack(ack_r->seq, &buffer[c].from);
           if (pop) {
             ack_received(pop, ack_r, buffer[c].tv, buffer[c].from);
             free(pop);
@@ -132,6 +135,9 @@ void * packet_processor(void*args) {
                 break;
               case F_ADDED:
                 //puts("FADDED");
+                fragment_received((RecvFragment) {.from = buffer[c].from, .fromlen = buffer[c].fromlen,
+                                                  .streamid = fragment->streamid, .blockid = fragment->blockid, .fragmentid = fragment->fragmentid,
+                                                  .buflen = buffer[c].buflen, .tv = buffer[c].tv});
                 if(iscomplete(fragment->streamid, fragment->blockid)) {
                 block_completed(fragment->streamid, fragment->blockid);}
                 break;
@@ -150,16 +156,16 @@ void * packet_processor(void*args) {
         }
       }
     }
-    if (prev_recv_len) {
-      struct timeval delta;
-      timersub(&buffer[c].tv, &prev_recv, &delta);
-      int delta_t = (delta.tv_sec * 1000000) + delta.tv_usec;
-      printf("D %i %i\n", delta_t, (int)buffer[c].buflen);
-      //printf("%i\n\n\n",  ( ( (int)buffer[c].buflen) /delta_t)*1000000 );
-
-    }
-    prev_recv_len = buffer[c].buflen;
-    prev_recv = buffer[c].tv;
+    //if (prev_recv_len) {
+    //  struct timeval delta;
+    //  timersub(&buffer[c].tv, &prev_recv, &delta);
+    //  int delta_t = (delta.tv_sec * 1000000) + delta.tv_usec;
+    //  printf("D %i %i\n", delta_t, (int)buffer[c].buflen);
+    //  //printf("%i\n\n\n",  ( ( (int)buffer[c].buflen) /delta_t)*1000000 );
+    //
+    //}
+    //prev_recv_len = buffer[c].buflen;
+    //prev_recv = buffer[c].tv;
     stats_r[I_DATA_COUNTER] += buffer[c].buflen;
     stats_r[I_PKG_COUNTER]++;
     pthread_mutex_unlock(&stat_lock_r);

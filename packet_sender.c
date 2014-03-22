@@ -53,7 +53,7 @@ sem_t sFull;
 sem_t qEmpty;
 
 
-struct timeval packet_send(int s) {
+struct timeval packet_send(int s, uint32_t sleeptime) {
   struct timeval t_start;
   struct timeval t_end;
   struct timeval ret;
@@ -63,12 +63,12 @@ struct timeval packet_send(int s) {
   SendData d;
   gettimeofday(&t_start, NULL);
 
-  pthread_mutex_lock(&send_lock);
-  if (f_send<S_TRESHOLD) {
-    pthread_cond_signal(&produceBlock);
-    puts("COND PRODUCEBLOCK");
-  }
-  pthread_mutex_unlock(&send_lock);
+  //pthread_mutex_lock(&send_lock);
+  //if (f_send<S_TRESHOLD) {
+  //  pthread_cond_signal(&produceBlock);
+  //  puts("COND PRODUCEBLOCK");
+  //}
+  //pthread_mutex_unlock(&send_lock);
 
   sem_wait(&sFull);
   pthread_mutex_lock(&prio_lock);
@@ -76,32 +76,36 @@ struct timeval packet_send(int s) {
     d = prio_buf[(N_PRIO+c_prio-f_prio)%N_PRIO];
     f_prio--;
     c = 1;
-  pthread_mutex_lock(&send_lock);
-  if (f_send<S_TRESHOLD) {
-    pthread_cond_signal(&produceBlock);
-    puts("COND PRODUCEBLOCK");
-  }
-  pthread_mutex_unlock(&send_lock);
+  //pthread_mutex_lock(&send_lock);
+  //if (f_send<S_TRESHOLD) {
+  //  pthread_cond_signal(&produceBlock);
+  //  puts("COND PRODUCEBLOCK");
+  //}
+  //pthread_mutex_unlock(&send_lock);
   }
   pthread_mutex_unlock(&prio_lock);
   if (!c) {
     pthread_mutex_lock(&send_lock);
     d = send_buf[(N_SEND+c_send-f_send)%N_SEND];
     f_send--;
-  if (f_send<S_TRESHOLD) {
-    pthread_cond_signal(&produceBlock);
-    puts("COND PRODUCEBLOCK");
-  }
+  //if (f_send<S_TRESHOLD) {
+  //  pthread_cond_signal(&produceBlock);
+  //  puts("COND PRODUCEBLOCK");
+  //}
     pthread_mutex_unlock(&send_lock);
   }
   gettimeofday(&t_end, NULL);
-  if (d.data[0]&BLK_NEED_ACK) {
-    d.length = append_ack(&d, t_end);
-  }
+  if (d.data[0] & BLK_NEED_ACK) {
+    d.length = append_ack(&d, t_end, sleeptime);
+  } //else if ((d.data[0] ^ BLK_ACK) == 0) {
+    //append_ack_ts(&d, &t_end);
+  //}
   if (sendto(s, d.data, d.length, 0, (struct sockaddr*) &d.to, sizeof(d.to)) == -1) {
     perror("SEND FAILED");
   }
-  free(d.data);
+  //if ((d.data[0]&BLK_NEED_ACK) == 0) {
+  //  free(d.data);
+  //}
   l=d.length;
   sem_post(&qEmpty);
   timersub(&t_end, &t_start, &ret);
@@ -121,11 +125,18 @@ struct timeval packet_send(int s) {
 //SENDING THREAD
 void * send_packet(void * sock) {
   int s = *(int*) sock;
-  //int bw = 1000000;
+  uint32_t sleeptime = 1500;
   free(sock);
   for(;;) {
-    usleep(1000);
-    packet_send(s);
+    usleep(sleeptime);
+    packet_send(s, sleeptime);
+
+    pthread_mutex_lock(&send_lock);
+    if (f_send<S_TRESHOLD) {
+      pthread_cond_signal(&produceBlock);
+      puts("COND PRODUCEBLOCK");
+    }
+    pthread_mutex_unlock(&send_lock);
   }
   return 0;
 }

@@ -26,4 +26,6 @@ int validate_ack(unsigned char * blob, size_t l);
 
 int validate_block(unsigned char * blob, size_t l);
 
+void append_ack_ts(SendData *s, struct timeval *ts);
+
 #endif

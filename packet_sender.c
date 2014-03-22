@@ -71,6 +71,12 @@ struct timeval packet_send(int s, uint32_t sleeptime) {
   //pthread_mutex_unlock(&send_lock);
 
   sem_wait(&sFull);
+    pthread_mutex_lock(&send_lock);
+    if (f_send<S_TRESHOLD) {
+      pthread_cond_signal(&produceBlock);
+      puts("COND PRODUCEBLOCK");
+    }
+    pthread_mutex_unlock(&send_lock);
   pthread_mutex_lock(&prio_lock);
   if (f_prio) {
     d = prio_buf[(N_PRIO+c_prio-f_prio)%N_PRIO];
@@ -128,6 +134,7 @@ void * send_packet(void * sock) {
   uint32_t sleeptime = 1500;
   free(sock);
   for(;;) {
+
     usleep(sleeptime);
     packet_send(s, sleeptime);
 

@@ -49,7 +49,7 @@ void fragment_received(RecvFragment fragment) {
         struct timeval delta;
         timersub(&fragment.tv, &host_bw->lastfragment.tv, &delta);
         double delta_t = delta.tv_sec + (delta.tv_usec / 1000000.0);
-        printf("DELTA_T %f\n", delta_t);
+        //printf("DELTA_T %f\n", delta_t);
 
         band->bw = (fragment.buflen + host_bw->lastfragment.buflen) / delta_t;
 

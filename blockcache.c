@@ -247,7 +247,7 @@ int sendblock(uint16_t streamid, uint32_t blockid, struct sockaddr_in to) {
     d = encode_fragment(&fragment);
     d.to = to;
     //d.data[0] = BLK_BLOCK_ACK;
-    d.data[0] = BLK_BLOCK;
+    d.data[0] = BLK_BLOCK_ACK;
     send_data(d);
     //free(fragment);
   }

@@ -27,7 +27,7 @@ static struct NackList nacklist = ((struct NackList){.slh_first = NULL});
 
 static pthread_mutex_t nack_lock = PTHREAD_MUTEX_INITIALIZER;
 
-uint16_t seq_num = 0;
+static uint16_t seq_num = 0;
 
 Nack_peer * nack_find_by_host(struct sockaddr_in * from) {
   Nack_peer * ret;
@@ -78,7 +78,7 @@ Ack * pop_ack(uint16_t seq, struct sockaddr_in * from) {
   }
 
   SLIST_FOREACH(ret, &peer->nacks, entries) {
-    printf("%i %i\n", ret->seq, seq);
+    //printf("%i %i\n", ret->seq, seq);
     if (ret->seq == seq) {
         break;
     }
@@ -135,4 +135,8 @@ int get_n_nack(void) {
   }
   pthread_mutex_unlock(&nack_lock);
   return ret;
+}
+
+int get_seq(void) {
+  return seq_num;
 }

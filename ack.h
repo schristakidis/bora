@@ -50,4 +50,7 @@ int get_n_nack(void);
 
 Ack * pop_ack(uint16_t seq, struct sockaddr_in * from);
 
+int remove_ooo_nacks(Ack*ack);
+
+int get_seq(void);
 #endif

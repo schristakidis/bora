@@ -26,12 +26,16 @@
 #include "packet_receiver.h"
 #include "recv_stats.h"
 #include "queue.h"
+#include "ack_received.h"
+#include "bw_stats.h"
 
 static int sock = 0;
 
 static int death = 0;
 
 static int c = 0;
+
+static int bws_running = 0;
 
 #ifdef __WIN32__
 
@@ -253,6 +257,168 @@ bora_biter(PyObject *self, PyObject *args)
   return (PyObject *)p;
 }
 
+typedef struct {
+  PyObject_HEAD
+
+} bora_BWIter;
+
+
+PyObject* bora_BWIter_iter(PyObject *self)
+{
+  Py_INCREF(self);
+  return self;
+}
+
+PyObject* bora_BWIter_iternext(PyObject *self)
+{
+  if (!death) {
+    Py_BEGIN_ALLOW_THREADS
+    sem_wait(&s_bws_hasdata);
+    Py_END_ALLOW_THREADS
+    if (!death) {
+      PyObject * ret;
+      PyObject * sent_data;
+      PyObject * peer_stats;
+      PyObject * peer_dict;
+      PyObject * last_seq_dict;
+      PyObject * current_seq;
+      struct PeerAckStats ackstats;
+      PeerAckStore * peercur;
+      char ip_addr[INET_ADDRSTRLEN];
+
+      peer_stats = PyList_New(0);
+      ackstats = get_ack_store();
+      SLIST_FOREACH(peercur, ackstats.peerstats, entries) {
+        peer_dict = PyDict_New();
+        inet_ntop(AF_INET, &(peercur->addr.sin_addr), ip_addr, INET_ADDRSTRLEN);
+        PyDict_SetItemString(peer_dict, "host", Py_BuildValue("s", ip_addr));
+        PyDict_SetItemString(peer_dict, "port", Py_BuildValue("i", ntohs((peercur->addr).sin_port)));
+        PyDict_SetItemString(peer_dict, "minSTT", Py_BuildValue("l", peercur->minSTT.tv_sec * 1000000L + peercur->minSTT.tv_usec));
+        PyDict_SetItemString(peer_dict, "minRTT", Py_BuildValue("l", peercur->minRTT.tv_sec * 1000000L + peercur->minRTT.tv_usec));
+        PyDict_SetItemString(peer_dict, "avgRTT", Py_BuildValue("l", peercur->avgRTT.tv_sec * 1000000L + peercur->avgRTT.tv_usec));
+        PyDict_SetItemString(peer_dict, "avgSTT", Py_BuildValue("l", peercur->avgSTT.tv_sec * 1000000L + peercur->avgSTT.tv_usec));
+        PyDict_SetItemString(peer_dict, "errRTT", Py_BuildValue("l", peercur->errRTT.tv_sec * 1000000L + peercur->errRTT.tv_usec));
+        PyDict_SetItemString(peer_dict, "errSTT", Py_BuildValue("l", peercur->errSTT.tv_sec * 1000000L + peercur->errSTT.tv_usec));
+        PyDict_SetItemString(peer_dict, "acked_total", Py_BuildValue("l", peercur->total_acked));
+        PyDict_SetItemString(peer_dict, "error_total", Py_BuildValue("l", peercur->total_errors));
+        PyDict_SetItemString(peer_dict, "acked_last", Py_BuildValue("l", peercur->last_acked));
+        PyDict_SetItemString(peer_dict, "error_last", Py_BuildValue("l", peercur->last_error));
+        PyList_Append(peer_stats, peer_dict);
+      }
+
+      if (PyList_Size(peer_stats)>0 && ackstats.last_seq!=NULL) {
+        AckStore * ls = ackstats.last_seq;
+        last_seq_dict = PyDict_New();
+        inet_ntop(AF_INET, &(ls->addr->sin_addr), ip_addr, INET_ADDRSTRLEN);
+        PyDict_SetItemString(last_seq_dict, "host", Py_BuildValue("s", ip_addr));
+        PyDict_SetItemString(last_seq_dict, "port", Py_BuildValue("i", ntohs(ls->addr->sin_port)));
+        PyDict_SetItemString(last_seq_dict, "sent", Py_BuildValue("d", (double)ls->sent.tv_sec + (double)ls->sent.tv_usec/1000000.0));
+        PyDict_SetItemString(last_seq_dict, "RTT", Py_BuildValue("l", ackstats.last_seq->RTT.tv_sec * 1000000L + ackstats.last_seq->RTT.tv_usec));
+        PyDict_SetItemString(last_seq_dict, "STT", Py_BuildValue("l", ackstats.last_seq->STT.tv_sec * 1000000L + ackstats.last_seq->STT.tv_usec));
+        PyDict_SetItemString(last_seq_dict, "seq", Py_BuildValue("i", ackstats.last_seq->seq));
+        PyDict_SetItemString(last_seq_dict, "sleep", Py_BuildValue("i", ackstats.last_seq->sleeptime));
+      } else {
+        last_seq_dict = Py_BuildValue("");
+      }
+
+      current_seq = Py_BuildValue("i", get_seq());
+
+      sent_data = PyDict_New();
+
+      PyDict_SetItemString(sent_data, "O_DATA_COUNTER", Py_BuildValue("i", stats_s[O_DATA_COUNTER]));
+      PyDict_SetItemString(sent_data, "O_PKG_COUNTER", Py_BuildValue("i", stats_s[O_PKG_COUNTER]));
+      PyDict_SetItemString(sent_data, "O_ACK_COUNTER", Py_BuildValue("i", stats_s[O_ACK_COUNTER]));
+      PyDict_SetItemString(sent_data, "O_ACK_DATA_COUNTER", Py_BuildValue("i", stats_s[O_ACK_DATA_COUNTER]));
+
+
+      ret = PyDict_New();
+      PyDict_SetItemString(ret, "sent_data", sent_data);
+      PyDict_SetItemString(ret, "peer_stats", peer_stats);
+      PyDict_SetItemString(ret, "last_ack", last_seq_dict);
+      PyDict_SetItemString(ret, "last_nack", current_seq);
+
+
+      return ret;
+    } else {
+      PyErr_SetNone(PyExc_StopIteration);
+      return NULL;
+    }
+  } else {
+    /* Raising of standard StopIteration exception with empty value. */
+    PyErr_SetNone(PyExc_StopIteration);
+    return NULL;
+  }
+}
+
+
+static PyTypeObject bora_BWIterType = {
+    PyObject_HEAD_INIT(NULL)
+    0,                         /*ob_size*/
+    "bora._BWIter",            /*tp_name*/
+    sizeof(bora_BWIter),       /*tp_basicsize*/
+    0,                         /*tp_itemsize*/
+    0,                         /*tp_dealloc*/
+    0,                         /*tp_print*/
+    0,                         /*tp_getattr*/
+    0,                         /*tp_setattr*/
+    0,                         /*tp_compare*/
+    0,                         /*tp_repr*/
+    0,                         /*tp_as_number*/
+    0,                         /*tp_as_sequence*/
+    0,                         /*tp_as_mapping*/
+    0,                         /*tp_hash */
+    0,                         /*tp_call*/
+    0,                         /*tp_str*/
+    0,                         /*tp_getattro*/
+    0,                         /*tp_setattro*/
+    0,                         /*tp_as_buffer*/
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_ITER,
+      /* tp_flags: Py_TPFLAGS_HAVE_ITER tells python to
+         use tp_iter and tp_iternext fields. */
+    "Internal puller iterator object.",           /* tp_doc */
+    0,  /* tp_traverse */
+    0,  /* tp_clear */
+    0,  /* tp_richcompare */
+    0,  /* tp_weaklistoffset */
+    bora_BWIter_iter,  /* tp_iter: __iter__() method */
+    bora_BWIter_iternext  /* tp_iternext: next() method */
+};
+
+static PyObject *
+bora_bwiter(PyObject *self, PyObject *value)
+{
+  if (!sock) {
+        PyErr_SetString(PyExc_AttributeError, "Sock not open");
+        return NULL;
+  }
+
+  int interval = (int)PyInt_AsLong(value);
+
+  if( interval==-1 && PyErr_Occurred() ) {
+     PyErr_SetString(PyExc_AttributeError, "not an int");
+     return NULL;
+  }
+
+  init_bws(interval);
+  bws_running = 1;
+
+  bora_BWIter *p;
+
+  p = PyObject_New(bora_BWIter, &bora_BWIterType);
+  if (!p) return NULL;
+
+  /* I'm not sure if it's strictly necessary. */
+  if (!PyObject_Init((PyObject *)p, &bora_BWIterType)) {
+    Py_DECREF(p);
+    return NULL;
+  }
+
+  return (PyObject *)p;
+}
+
+
+
+
 static PyObject* die(PyObject* self, PyObject * value )
 {
     if (!sock) {
@@ -262,6 +428,7 @@ static PyObject* die(PyObject* self, PyObject * value )
     death = 1;
     sem_post(&s_bpuller_full);
     sem_post(&s_biter_full);
+    if (bws_running) { sem_post(&s_bws_hasdata); }
     if (close(sock)==-1) {
       perror("Could not close socket");
       Py_RETURN_NONE;
@@ -270,7 +437,7 @@ static PyObject* die(PyObject* self, PyObject * value )
     Py_RETURN_TRUE;
 }
 
-static PyObject *listen_on( PyObject * self, PyObject * value )
+static PyObject *listen_on( PyObject * self, PyObject * value)
 {
         if (sock) {
                 PyErr_SetString(PyExc_AttributeError, "Sock already open");
@@ -569,6 +736,17 @@ static PyObject *get_block_content( PyObject * self, PyObject * args )
     return r;
 }
 
+static PyObject *bora_bws_set( PyObject * self, PyObject * value )
+{
+    int rst = (int)PyInt_AsLong(value);
+
+    bws_return_value(rst);
+
+    Py_RETURN_NONE;
+
+}
+
+
 // THIS IS METHOD DOCS
 static char listen_docs[] =
     "listen_on( port ): Setup socket and listen on port\n";
@@ -596,6 +774,10 @@ static char complete_block_list_docs[] =
     "complete_block_list( ): Retrieve list of complete blocks\n";
 static char get_block_content_docs[] =
     "get_block_content( streamid, blockid ): Retrieve content of the given block or None\n";
+static char bwiter_docs[] =
+    "bwsiter( interval ): Create BWS iterator returning BWS data each \"interval\" time\n";
+static char bws_set_docs[] =
+    "bws_set( bandwidth ): Set bandwidth in Bytes/sec and restart the sending thread\n";
 
 
 
@@ -613,7 +795,8 @@ static PyMethodDef BoraMethods[] = {
     {"incomplete_block_list", incomplete_block_list, METH_NOARGS, incomplete_block_list_docs},
     {"complete_block_list", complete_block_list, METH_NOARGS, complete_block_list_docs},
     {"get_block_content", get_block_content, METH_VARARGS, get_block_content_docs},
-
+    {"bwsiter", bora_bwiter, METH_O, bwiter_docs},
+    {"bws_set", bora_bws_set, METH_O, bws_set_docs},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

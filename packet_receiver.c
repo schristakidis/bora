@@ -48,10 +48,11 @@ void * packet_receiver(void * socket) {
     }
     gettimeofday(&buffer[c].tv, NULL);
     buffer[c].buflen = l;
-    printf("RECEIVED: 0x%x %i\n", buffer[c].buf[0], (int)buffer[c].buflen);
+    //printf("RECEIVED: 0x%x %i\n", buffer[c].buf[0], (int)buffer[c].buflen);
     c = (BUF_N+1+c)%BUF_N;
     sem_post(&bFull);
   }
+  printf("Packet receiver processor going out\n");
   return (void*) 0;
 }
 

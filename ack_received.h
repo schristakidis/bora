@@ -10,7 +10,7 @@
 #include <sys/socket.h>
 #endif
 
-#define ACKSTORE_N 20
+#define ACKSTORE_N 1
 
 #include "ack.h"
 #include "queue.h"
@@ -51,7 +51,14 @@ typedef struct PeerAckStore {
 
 SLIST_HEAD(Ack_store, PeerAckStore);
 
+typedef struct PeerAckStats {
+  struct Ack_store * peerstats;
+  struct AckStore * last_seq;
+} PeerAckStats;
+
 
 int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, struct sockaddr_in from);
+struct PeerAckStats get_ack_store(void);
+void release_ack_store(void);
 
 #endif

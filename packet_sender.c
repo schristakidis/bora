@@ -39,21 +39,24 @@ static struct timeval idleTime = (struct timeval){0};
 static pthread_t sender_t;
 static pthread_t puller_t;
 
-SendData send_buf[N_SEND];
+static SendData send_buf[N_SEND];
 static pthread_mutex_t send_lock = PTHREAD_MUTEX_INITIALIZER;
 static int c_send = 0;
 static int f_send = 0;
 
-SendData prio_buf[N_PRIO];
+static SendData prio_buf[N_PRIO];
 static pthread_mutex_t prio_lock = PTHREAD_MUTEX_INITIALIZER;
+
 static int c_prio = 0;
 static int f_prio = 0;
+static uint64_t bandwidth = 1000000;
+static uint64_t sleeptime = 1500;
 
 sem_t sFull;
 sem_t qEmpty;
 
 
-struct timeval packet_send(int s, uint32_t sleeptime) {
+struct timeval packet_send(int s) {
   struct timeval t_start;
   struct timeval t_end;
   struct timeval ret;
@@ -63,20 +66,20 @@ struct timeval packet_send(int s, uint32_t sleeptime) {
   SendData d;
   gettimeofday(&t_start, NULL);
 
-  //pthread_mutex_lock(&send_lock);
-  //if (f_send<S_TRESHOLD) {
-  //  pthread_cond_signal(&produceBlock);
-  //  puts("COND PRODUCEBLOCK");
-  //}
-  //pthread_mutex_unlock(&send_lock);
+  pthread_mutex_lock(&send_lock);
+  if (f_send<S_TRESHOLD) {
+    pthread_cond_signal(&produceBlock);
+    puts("COND PRODUCEBLOCK");
+  }
+  pthread_mutex_unlock(&send_lock);
 
   sem_wait(&sFull);
-    pthread_mutex_lock(&send_lock);
-    if (f_send<S_TRESHOLD) {
-      pthread_cond_signal(&produceBlock);
-      puts("COND PRODUCEBLOCK");
-    }
-    pthread_mutex_unlock(&send_lock);
+    //pthread_mutex_lock(&send_lock);
+    //if (f_send<S_TRESHOLD) {
+    //  pthread_cond_signal(&produceBlock);
+    //  puts("COND PRODUCEBLOCK");
+    //}
+    //pthread_mutex_unlock(&send_lock);
   pthread_mutex_lock(&prio_lock);
   if (f_prio) {
     d = prio_buf[(N_PRIO+c_prio-f_prio)%N_PRIO];
@@ -113,6 +116,9 @@ struct timeval packet_send(int s, uint32_t sleeptime) {
   //  free(d.data);
   //}
   l=d.length;
+  pthread_mutex_lock(&bwLock);
+  sleeptime = 1000000L * d.length / bandwidth;
+  pthread_mutex_unlock(&bwLock);
   sem_post(&qEmpty);
   timersub(&t_end, &t_start, &ret);
   pthread_mutex_lock(&stat_lock_s);
@@ -131,12 +137,13 @@ struct timeval packet_send(int s, uint32_t sleeptime) {
 //SENDING THREAD
 void * send_packet(void * sock) {
   int s = *(int*) sock;
-  uint32_t sleeptime = 1500;
   free(sock);
   for(;;) {
-
+    //puts("SEND_PACKET pre sleep\n");
     usleep(sleeptime);
-    packet_send(s, sleeptime);
+    //puts("SEND_PACKET post sleep\n");
+    packet_send(s);
+    //puts("SEND_PACKET post send\n");
 
     pthread_mutex_lock(&send_lock);
     if (f_send<S_TRESHOLD) {
@@ -145,6 +152,7 @@ void * send_packet(void * sock) {
     }
     pthread_mutex_unlock(&send_lock);
   }
+  printf("SEND thread going out\n");
   return 0;
 }
 
@@ -162,6 +170,7 @@ void * send_pull(void* args) {
     pthread_cond_wait(&blockProduced, &bpLock);
     pthread_mutex_unlock(&bpLock);
   }
+  printf("SEND puller going out\n");
 }
 
 //PUBLIC FUNCTION
@@ -183,6 +192,12 @@ void send_data(SendData d) {
   sem_post(&sFull);
 }
 
+void set_bandwidth(int bw) {
+  bandwidth = (uint64_t) bw;
+  //printf("bw %d", bandwidth);
+  return;
+}
+
 void init_sender(int s) {
   void * sock = (void*) malloc(sizeof(int));
   if (sock == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
@@ -191,6 +206,7 @@ void init_sender(int s) {
   memset(&stats_s, 0, sizeof(stats_s));
   pthread_mutex_init(&stat_lock_s, NULL);
   pthread_mutex_init(&bpLock, NULL);
+  pthread_mutex_init(&bwLock, NULL);
   pthread_cond_init(&blockProduced, NULL);
   sem_init(&sFull, 0, 0);
   sem_init(&qEmpty, 0, N_SEND);

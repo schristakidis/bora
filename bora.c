@@ -688,7 +688,7 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
 
         j = 0;
         SLIST_FOREACH_SAFE(b, &band->bandwidth, entries, b_temp) {
-            PyList_SET_ITEM(l, j, Py_BuildValue("{sksO}", "bw", (unsigned long int)b->bw, "tv", Py_BuildValue("{sisi}", "sec", b->tv.tv_sec, "usec", b->tv.tv_usec)));
+            PyList_SET_ITEM(l, j, Py_BuildValue("{sksd}", "bw", (unsigned long int)b->bw, "tv", (double)b->tv.tv_sec + (double)b->tv.tv_usec/1000000.0));
             SLIST_REMOVE(&band->bandwidth, b, BW, entries);
             free(b);
             j++;
@@ -804,6 +804,7 @@ static PyMethodDef BoraMethods[] = {
     {"get_block_content", get_block_content, METH_VARARGS, get_block_content_docs},
     {"bwsiter", bora_bwiter, METH_O, bwiter_docs},
     {"bws_set", bora_bws_set, METH_VARARGS, bws_set_docs},
+    //{"bws_set", bora_bws_set, METH_VARARGS, bws_set_docs},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

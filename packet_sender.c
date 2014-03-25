@@ -22,9 +22,9 @@
 #include "stats_bridge.h"
 #include "bpuller_bridge.h"
 
-#define N_SEND 200
+#define N_SEND 2000
 #define S_TRESHOLD 3
-#define N_PRIO 200
+#define N_PRIO 2000
 
 
 //blockProduced = PTHREAD_COND_INITIALIZER;
@@ -117,7 +117,7 @@ struct timeval packet_send(int s) {
   //}
   l=d.length;
   pthread_mutex_lock(&bwLock);
-  sleeptime = 1000000L * d.length / bandwidth;
+  sleeptime = (uint64_t)(1000000L * d.length / bandwidth);
   pthread_mutex_unlock(&bwLock);
   sem_post(&qEmpty);
   timersub(&t_end, &t_start, &ret);
@@ -175,7 +175,11 @@ void * send_pull(void* args) {
 
 //PUBLIC FUNCTION
 void send_data(SendData d) {
-  sem_wait(&qEmpty);
+  int w = sem_trywait(&qEmpty);
+  if (w==-1) {
+    puts ("\n00000000000000000000000000000000000000000000000000000000000000\n QUEUE FULLLL CANT SEND\n0000000000000000000000000000000000000000000000000000000000000000000000000000000000\n\n");
+    return;
+  }
   if (d.data[0] & BLK_ACK) {
     pthread_mutex_lock(&prio_lock);
     prio_buf[c_prio] = d;

@@ -40,8 +40,11 @@ void * bws_thread (void * args) {
     usleep(bws_timer);
     //puts("BWS THREAD POST SLEEP\n");
     pthread_mutex_lock(&bwLock);
+    //puts("BWS THREAD POST LOCK\n");
     sem_post(&s_bws_hasdata);
+    //puts("BWS THREAD POST HASDATA\n");
     sem_wait(&s_bws_processed);
+    //puts("BWS THREAD POST PROCESSED\n");
     pthread_mutex_unlock(&bwLock);
   }
   printf("BWS THREAD DOWN\n");

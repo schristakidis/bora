@@ -56,3 +56,7 @@ void bws_return_value (int bw) {
     sem_post(&s_bws_processed);
     //puts("bws_return_value END");
 }
+
+void set_bws_interval(int interval) {
+    bws_timer = interval;
+}

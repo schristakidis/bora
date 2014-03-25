@@ -736,10 +736,17 @@ static PyObject *get_block_content( PyObject * self, PyObject * args )
     return r;
 }
 
-static PyObject *bora_bws_set( PyObject * self, PyObject * value )
+static PyObject *bora_bws_set( PyObject * self, PyObject * args )
 {
-    int rst = (int)PyInt_AsLong(value);
+    int rst;
+    int bws_time;
 
+    if (!PyArg_ParseTuple(args, "ii", &rst, &bws_time)) {
+                PyErr_SetString(PyExc_AttributeError, "Wrong arguments");
+                return NULL;
+    }
+
+    set_bws_interval(bws_time);
     bws_return_value(rst);
 
     Py_RETURN_NONE;
@@ -775,9 +782,9 @@ static char complete_block_list_docs[] =
 static char get_block_content_docs[] =
     "get_block_content( streamid, blockid ): Retrieve content of the given block or None\n";
 static char bwiter_docs[] =
-    "bwsiter( interval ): Create BWS iterator returning BWS data each \"interval\" time\n";
+    "bwsiter( interval ): Create BWS iterator returning BWS data each \"interval\" usecs\n";
 static char bws_set_docs[] =
-    "bws_set( bandwidth ): Set bandwidth in Bytes/sec and restart the sending thread\n";
+    "bws_set( bandwidth , interval): Set bandwidth in Bytes/sec, interval in usecs and restore the sending thread\n";
 
 
 
@@ -796,7 +803,7 @@ static PyMethodDef BoraMethods[] = {
     {"complete_block_list", complete_block_list, METH_NOARGS, complete_block_list_docs},
     {"get_block_content", get_block_content, METH_VARARGS, get_block_content_docs},
     {"bwsiter", bora_bwiter, METH_O, bwiter_docs},
-    {"bws_set", bora_bws_set, METH_O, bws_set_docs},
+    {"bws_set", bora_bws_set, METH_VARARGS, bws_set_docs},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

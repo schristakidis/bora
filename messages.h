@@ -7,6 +7,8 @@
 #define BLK_ACK 0x02         // 00000010
 #define BLK_NEED_ACK 0x80    // 10000000
 
+#define BW_MSG 0x40          // 01000000
+
 #define MASK_BLOCK_ACK 0x7E  // 01111110
 
 #endif

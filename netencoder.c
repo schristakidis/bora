@@ -14,6 +14,7 @@
 #include "netencoder.h"
 #include "messages.h"
 #include "ack.h"
+#include "bw_msgs.h"
 #include "ack_received.h"
 
 typedef struct __attribute__((__packed__)) {
@@ -32,6 +33,11 @@ typedef struct __attribute__((__packed__)) {
   uint32_t usec;
 } AckPacket;
 
+typedef struct __attribute__((__packed__)) {
+  unsigned char flags;
+  uint32_t bw;
+} BWPacket;
+
 int get_fragment_size(FragmentData * fragment) {
 	int ret;
 	ret = sizeof(FragmentHeader) + fragment->length;
@@ -41,6 +47,16 @@ int get_fragment_size(FragmentData * fragment) {
 int validate_ack(unsigned char * blob, size_t l) {
   if (l == sizeof(AckPacket)) {
     if ((((AckPacket*)blob)->flags ^ BLK_ACK) == 0) {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+int validate_bw(unsigned char * blob, size_t l) {
+  if (l == sizeof(BWPacket)) {
+    if ((((AckPacket*)blob)->flags ^ BW_MSG) == 0) {
       return 1;
     }
   }
@@ -64,8 +80,6 @@ int validate_block(unsigned char * blob, size_t l) {
 SendData encode_fragment(FragmentData * fragment) {
     SendData s;
 	FragmentHeader * header;
-	//s.data = (unsigned char*) malloc(1500);
-	//if (s.data == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
 	header = (FragmentHeader *) s.data;
 	header->flags = BLK_BLOCK;
 	header->streamid = htons(fragment->streamid);
@@ -107,11 +121,17 @@ FragmentData * decode_fragment(unsigned char * fragmentstring, ssize_t length) {
 
 SendData encode_ack(uint16_t seq) {
     SendData s;
-    //s.data = (unsigned char*) malloc(sizeof(AckPacket));
-	//if (s.data == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
 	((AckPacket*)s.data)->flags = BLK_ACK;
 	((AckPacket*)s.data)->seq = seq;
 	s.length = sizeof(AckPacket);
+	return s;
+}
+
+SendData encode_bw(uint32_t bw) {
+    SendData s;
+	((BWPacket*)s.data)->flags = BW_MSG;
+	((BWPacket*)s.data)->bw = htonl(bw);
+	s.length = sizeof(BWPacket);
 	return s;
 }
 
@@ -130,6 +150,16 @@ AckReceived * decode_ack(unsigned char* ack_r, ssize_t length) {
     ret->seq = ((AckPacket*) ack_r)->seq;
     ret->sec = ntohl(((AckPacket*) ack_r)->sec);
     ret->usec = ntohl(((AckPacket*) ack_r)->usec);
+    return ret;
+}
+
+BWMsg * decode_bwmsg(unsigned char* bw_r, ssize_t length) {
+    if (length<(unsigned)sizeof(BWPacket)) {
+      return NULL;
+    }
+    BWMsg * ret = (BWMsg*) malloc(sizeof(BWMsg));
+	if (ret == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
+	ret->bw = ntohl(((BWPacket*)bw_r)->bw);
     return ret;
 }
 

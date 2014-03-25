@@ -21,6 +21,7 @@
 #include "biter_bridge.h"
 #include "stats_bridge.h"
 #include "recv_stats.h"
+#include "bw_msgs.h"
 
 //struct timeval prev_recv = {0};
 //int prev_recv_len = 0;
@@ -111,6 +112,24 @@ void * packet_processor(void*args) {
         }
 
       }
+
+      if (buffer[c].buf[0] & BW_MSG) {
+        if (validate_bw(&buffer[c].buf[0], buffer[c].buflen)) {
+            BWMsg * bw_message = decode_bwmsg(&buffer[c].buf[0], buffer[c].buflen);
+            if (bw_message) {
+                bw_message->addr = buffer[c].from;
+                bw_message->recv_time = buffer[c].tv;
+                bwmsg_received(bw_message);
+            } else {
+                buffer[c].buf[0] = 0x00;
+                stats_r[I_GARBAGE] += buffer[c].buflen;
+            }
+        } else {
+            buffer[c].buf[0] = 0x00;
+            stats_r[I_GARBAGE] += buffer[c].buflen;
+        }
+      }
+
       // IF PACKET CONTAINS BLOCK FRAGMENTS PROCESS IT AND SEND TO BLOCK CACHE
       if (buffer[c].buf[0] & BLK_BLOCK) {
         if (validate_block(&buffer[c].buf[0], buffer[c].buflen)) {

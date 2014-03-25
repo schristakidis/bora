@@ -28,6 +28,7 @@
 #include "queue.h"
 #include "ack_received.h"
 #include "bw_stats.h"
+#include "bw_msgs.h"
 
 static int sock = 0;
 
@@ -426,9 +427,9 @@ static PyObject* die(PyObject* self, PyObject * value )
       return NULL;
     }
     death = 1;
+    if (bws_running) { sem_post(&s_bws_hasdata); }
     sem_post(&s_bpuller_full);
     sem_post(&s_biter_full);
-    if (bws_running) { sem_post(&s_bws_hasdata); }
     if (close(sock)==-1) {
       perror("Could not close socket");
       Py_RETURN_NONE;
@@ -661,6 +662,10 @@ static PyObject *get_out_stats( PyObject * self, PyObject * value )
 
 static PyObject *get_bw_stats( PyObject * self, PyObject * args )
 {
+    if (!sock) {
+            PyErr_SetString(PyExc_AttributeError, "Sock not open");
+            return NULL;
+    }
     int i, j;
     PyObject* ret;
     BWEstimation * band;
@@ -708,6 +713,114 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
 
 
     return ret;
+}
+
+static PyObject *bora_get_bw_msg( PyObject * self, PyObject * args )
+{
+    if (!sock) {
+            PyErr_SetString(PyExc_AttributeError, "Sock not open");
+            return NULL;
+    }
+    int i, j;
+    PyObject* ret;
+    BWMsg * b;
+    BWMsg * b_temp;
+    struct BandwidthMessages bwlist = get_bwmsg_list();
+
+    ret = PyList_New(0);
+    SLIST_FOREACH_SAFE(b, &bwlist, entries, b_temp) {
+        char ip_addr[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &(b->addr.sin_addr), ip_addr, INET_ADDRSTRLEN);
+        PyList_Append(ret, Py_BuildValue("{sssHsksd}", "ip", ip_addr, "port", ntohs(b->addr.sin_port), "bw", (unsigned long int)b->bw, "tv", (double)b->recv_time.tv_sec + (double)b->recv_time.tv_usec/1000000.0));
+
+        SLIST_REMOVE(&bwlist, b, BWMsg, entries);
+        free(b);
+    }
+
+    return ret;
+}
+static PyObject *bora_send_bw_msg( PyObject * self, PyObject * args )
+{
+    if (!sock) {
+            PyErr_SetString(PyExc_AttributeError, "Sock not open");
+            return NULL;
+    }
+
+    PyObject * pylist;
+    PyObject * dict_cur;
+    Py_ssize_t list_len;
+    Py_ssize_t i;
+
+    struct sockaddr_in addr;
+    int s;
+
+
+    if (!PyArg_ParseTuple(args, "O", &pylist)) {
+                PyErr_SetString(PyExc_AttributeError, "Wrong arguments");
+                return NULL;
+    }
+
+    if (!PyList_Check(pylist)) {
+                PyErr_SetString(PyExc_AttributeError, "First argument is not a list");
+                return NULL;
+
+    }
+
+    list_len = PyList_Size(pylist);
+    for (i=0;i<list_len; i++) {
+        dict_cur = PyList_GetItem(pylist, i);
+        if (!PyDict_Check(dict_cur)) {
+                PyErr_SetString(PyExc_AttributeError, "List ha no-dict objects");
+                return NULL;
+
+        }
+        if ( (!PyDict_GetItemString(dict_cur, "ip")) || (!PyDict_GetItemString(dict_cur, "port")) || (!PyDict_GetItemString(dict_cur, "bw"))) {
+                PyErr_SetString(PyExc_AttributeError, "bad dict entries");
+                return NULL;
+
+        }
+
+        addr.sin_family = AF_INET;
+
+    #ifdef __WIN32__
+        addr.sin_addr.s_addr = s = inet_addr((const char*)PyString_AsString(PyDict_GetItemString("ip"));
+    #else
+
+        s = inet_pton(AF_INET, (const char*)PyString_AsString(PyDict_GetItemString(dict_cur, "ip")), &(addr.sin_addr));
+    #endif
+
+        if (s <= 0) {
+               if (s == 0) {
+                  PyErr_SetString(PyExc_AttributeError, "DEST IP: Not in presentation format");
+                  return NULL;
+               } else {
+                  PyErr_SetString(PyExc_AttributeError, "DEST IP: Not in presentation format");
+                  perror("inet_pton");
+                  return NULL;
+               }
+        }
+
+        if (!PyInt_Check(PyDict_GetItemString(dict_cur, "port"))) {
+                PyErr_SetString(PyExc_AttributeError, "PORT is not INT");
+                return NULL;
+        }
+
+        addr.sin_port = htons((uint16_t)PyInt_AsLong(PyDict_GetItemString(dict_cur, "port")));
+
+        if (!PyInt_Check(PyDict_GetItemString(dict_cur, "bw"))) {
+                PyErr_SetString(PyExc_AttributeError, "BW is not INT");
+                return NULL;
+        }
+
+        send_bwmsg(addr, (uint32_t)PyInt_AsLong(PyDict_GetItemString(dict_cur, "bw")));
+
+        Py_RETURN_TRUE;
+
+    }
+
+
+
+      Py_RETURN_NONE;
 }
 
 static PyObject *get_block_content( PyObject * self, PyObject * args )
@@ -785,6 +898,10 @@ static char bwiter_docs[] =
     "bwsiter( interval ): Create BWS iterator returning BWS data each \"interval\" usecs\n";
 static char bws_set_docs[] =
     "bws_set( bandwidth , interval): Set bandwidth in Bytes/sec, interval in usecs and restore the sending thread\n";
+static char send_bw_msg_docs[] =
+    "send_bw_msg( [list of {ip, port, bw}] ): Send bandwidth estimation messages to the peers\n";
+static char get_bw_msg_docs[] =
+    "get_bw_msg( ): Get bandwidth estimation messages received from the peers\n";
 
 
 
@@ -804,7 +921,8 @@ static PyMethodDef BoraMethods[] = {
     {"get_block_content", get_block_content, METH_VARARGS, get_block_content_docs},
     {"bwsiter", bora_bwiter, METH_O, bwiter_docs},
     {"bws_set", bora_bws_set, METH_VARARGS, bws_set_docs},
-    //{"bws_set", bora_bws_set, METH_VARARGS, bws_set_docs},
+    {"send_bw_msg", bora_send_bw_msg, METH_VARARGS, send_bw_msg_docs},
+    {"get_bw_msg", bora_get_bw_msg, METH_NOARGS, get_bw_msg_docs},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

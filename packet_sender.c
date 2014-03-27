@@ -103,6 +103,9 @@ struct timeval packet_send(int s) {
   //}
     pthread_mutex_unlock(&send_lock);
   }
+  pthread_mutex_lock(&bwLock);
+  sleeptime = (uint64_t)(1000000L * d.length / bandwidth);
+  pthread_mutex_unlock(&bwLock);
   gettimeofday(&t_end, NULL);
   if (d.data[0] & BLK_NEED_ACK) {
     d.length = append_ack(&d, t_end, sleeptime);
@@ -116,9 +119,6 @@ struct timeval packet_send(int s) {
   //  free(d.data);
   //}
   l=d.length;
-  pthread_mutex_lock(&bwLock);
-  sleeptime = (uint64_t)(1000000L * d.length / bandwidth);
-  pthread_mutex_unlock(&bwLock);
   sem_post(&qEmpty);
   timersub(&t_end, &t_start, &ret);
   pthread_mutex_lock(&stat_lock_s);
@@ -177,7 +177,7 @@ void * send_pull(void* args) {
 void send_data(SendData d) {
   int w = sem_trywait(&qEmpty);
   if (w==-1) {
-    puts ("\n00000000000000000000000000000000000000000000000000000000000000\n QUEUE FULLLL CANT SEND\n0000000000000000000000000000000000000000000000000000000000000000000000000000000000\n\n");
+    puts ("QUEUE FULL\n");
     return;
   }
   if (d.data[0] & BLK_ACK) {

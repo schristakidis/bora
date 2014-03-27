@@ -27,5 +27,6 @@ typedef struct SendData {
 void send_data(SendData d);
 void init_sender(int s);
 void set_bandwidth(int bw);
+struct timeval get_idle(void);
 
 #endif

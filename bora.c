@@ -346,6 +346,7 @@ PyObject* bora_BWIter_iternext(PyObject *self)
       PyDict_SetItemString(ret, "peer_stats", peer_stats);
       PyDict_SetItemString(ret, "last_ack", last_seq_dict);
       PyDict_SetItemString(ret, "last_nack", current_seq);
+      PyDict_SetItemString(ret, "idle", Py_BuildValue("l", get_idle()));
 
 
       //puts("REEET");

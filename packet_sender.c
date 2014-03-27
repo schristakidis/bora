@@ -225,3 +225,9 @@ void init_sender(int s) {
     exit(EXIT_FAILURE);
   }
 }
+
+struct timeval get_idle(void) {
+  uint64_t ret = idleTime.tv_sec * 1000000L + idleTime.tv_usec;
+  idleTime = (struct timeval) {0};
+  return ret;
+}

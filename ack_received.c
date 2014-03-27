@@ -109,12 +109,10 @@ int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, stru
     if (timercmp(&peer->ack_store[peer->cur].RTT, &peer->minRTT, <)) {
         peer->minRTT = peer->ack_store[peer->cur].RTT;
     }
-    peer->errRTT = (struct timeval) {0};
     peer->avgSTT = compute_average(peer->ack_store, 1);
     if (timercmp(&peer->ack_store[peer->cur].STT, &peer->minSTT, <)) {
         peer->minSTT = peer->ack_store[peer->cur].STT;
     }
-    peer->errSTT = (struct timeval) {0};
     peer->total_acked += 1;
     peer->last_acked += 1;
     int errors = remove_ooo_nacks(ack_s);

@@ -1,6 +1,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/time.h>
 #include "bw_est.h"
 
@@ -58,8 +59,14 @@ void calc_bw(struct sockaddr_in host, uint32_t blockid, uint8_t f, struct timeva
   if (my_host) {
     if (my_host->active) {
       if (my_host->last_BW_data.blockid == blockid && my_host->last_BW_data.f+1 == f) {
+        printf ("tv sec: %d usec: %d", tv.tv_sec, tv.tv_usec);
+        printf ("tvlast sec: %d usec: %d\n", my_host->last_BW_data.tv.tv_sec, my_host->last_BW_data.tv.tv_usec);
+        printf ("fszie: %d\n", fsize);
+
         timersub(&tv, &(my_host->last_BW_data.tv), &time_delta);
+        printf ("delta sec: %d usec: %d\n", time_delta.tv_sec, time_delta.tv.tv_usec);
         my_host->ests[my_host->c_ests] = (uint64_t) (fsize*1000000)/(1000000*time_delta.tv_sec+time_delta.tv_usec);
+        printf("est: %d\n", my_host->ests[my_host->c_ests]);
 
         my_host->last_BW_data = this_bw;
         my_host->c_ests=(1+my_host->c_ests)%N_ESTS;

@@ -51,7 +51,7 @@ void fragment_received(RecvFragment fragment) {
         double delta_t = delta.tv_sec + (delta.tv_usec / 1000000.0);
         //printf("DELTA_T %f\n", delta_t);
 
-        band->bw = (fragment.buflen + host_bw->lastfragment.buflen) / delta_t;
+        band->bw = (fragment.buflen) / delta_t;
 
         SLIST_INSERT_HEAD(&host_bw->bandwidth, band, entries);
     }

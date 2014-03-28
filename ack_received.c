@@ -54,6 +54,7 @@ int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, stru
   pthread_mutex_lock(&ack_list);
   peer = find_peer_by_host(&from);
   if (peer==NULL) {
+    remove_ooo_nacks(ack_s);
     peer = (PeerAckStore*)malloc(sizeof(PeerAckStore));
     if (peer == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
     peer->addr = from;

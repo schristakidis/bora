@@ -147,5 +147,6 @@ void release_ack_store(void) {
     cur->last_acked = 0;
     cur->last_error = 0;
   }
+  highest_seq = NULL;
   pthread_mutex_unlock(&ack_list);
 }

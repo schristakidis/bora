@@ -46,6 +46,7 @@ void * packet_receiver(void * socket) {
     l = recvfrom(s, &buffer[c].buf, 1500, 0, (struct sockaddr*)&buffer[c].from, &buffer[c].fromlen);
     if (l==-1) {
       perror("RECV ERROR");
+      break;
     }
     gettimeofday(&buffer[c].tv, NULL);
     buffer[c].buflen = l;

@@ -169,7 +169,7 @@ PyObject* bora_BIter_iter(PyObject *self)
 
 PyObject* bora_BIter_iternext(PyObject *self)
 {
-  bora_BIter *p = (bora_BIter *)self;
+  //bora_BIter *p = (bora_BIter *)self;
   if (!death) {
     int s, b;
 
@@ -276,6 +276,8 @@ PyObject* bora_BWIter_iter(PyObject *self)
 
 PyObject* bora_BWIter_iternext(PyObject *self)
 {
+
+  //bora_BWIter *p = (bora_BWIter *)self;
   if (!death) {
     //puts("BWS_UNLOCKING\n");
     Py_BEGIN_ALLOW_THREADS
@@ -352,7 +354,6 @@ PyObject* bora_BWIter_iternext(PyObject *self)
       //puts("REEET");
       return ret;
     } else {
-      //puts("ERRRRRRRRRR");
       PyErr_SetNone(PyExc_StopIteration);
       return NULL;
     }
@@ -388,7 +389,7 @@ static PyTypeObject bora_BWIterType = {
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_ITER,
       /* tp_flags: Py_TPFLAGS_HAVE_ITER tells python to
          use tp_iter and tp_iternext fields. */
-    "Internal puller iterator object.",           /* tp_doc */
+    "Internal bw iterator object.",           /* tp_doc */
     0,  /* tp_traverse */
     0,  /* tp_clear */
     0,  /* tp_richcompare */
@@ -439,7 +440,7 @@ static PyObject* die(PyObject* self, PyObject * value )
       return NULL;
     }
     death = 1;
-    if (bws_running) { sem_post(&s_bws_hasdata); }
+    if (bws_running) { sem_post(&s_bws_hasdata); bws_running = 0;}
     sem_post(&s_bpuller_full);
     sem_post(&s_biter_full);
     if (close(sock)==-1) {
@@ -499,6 +500,9 @@ static PyObject *listen_on( PyObject * self, PyObject * value)
 
 static PyObject *send_block( PyObject * self, PyObject * args )
 {
+    if (death) {
+        Py_RETURN_NONE;
+    }
     //puts("SENDBLOCK_LOCKING\n");
     if (!sock) {
             PyErr_SetString(PyExc_AttributeError, "Sock not open");
@@ -556,6 +560,9 @@ static PyObject *send_block( PyObject * self, PyObject * args )
 
 static PyObject *add_block( PyObject * self, PyObject * args )
 {
+    if (death) {
+        Py_RETURN_NONE;
+    }
     int s_id;
     int b_id;
     BlockData b_data;
@@ -574,6 +581,9 @@ static PyObject *add_block( PyObject * self, PyObject * args )
 
 static PyObject *del_block( PyObject * self, PyObject * args )
 {
+    if (death) {
+        Py_RETURN_NONE;
+    }
     int s_id;
     int b_id;
     int retval;
@@ -594,6 +604,9 @@ static PyObject *del_block( PyObject * self, PyObject * args )
 
 static PyObject *incomplete_block_list( PyObject * self, PyObject * args )
 {
+    if (death) {
+        Py_RETURN_NONE;
+    }
     //puts("INCOMPLETE_BL_LOCKING\n");
     int i;
     PyObject* ret;
@@ -613,6 +626,9 @@ static PyObject *incomplete_block_list( PyObject * self, PyObject * args )
 
 static PyObject *complete_block_list( PyObject * self, PyObject * args )
 {
+    if (death) {
+        Py_RETURN_NONE;
+    }
     //puts("COMPLETE_BL_LOCKING\n");
     int i;
     PyObject* ret;
@@ -633,6 +649,9 @@ static PyObject *complete_block_list( PyObject * self, PyObject * args )
 static PyObject *get_in_stats( PyObject * self, PyObject * value )
 {
 
+    if (death) {
+        Py_RETURN_NONE;
+    }
     //puts("GET IN STATS_LOCKING\n");
     int rst = (int)PyInt_AsLong(value);
     PyObject* ret;
@@ -659,6 +678,9 @@ static PyObject *get_in_stats( PyObject * self, PyObject * value )
 static PyObject *get_out_stats( PyObject * self, PyObject * value )
 {
 
+    if (death) {
+        Py_RETURN_NONE;
+    }
     //puts("GET OUT STATS_LOCKING\n");
     int rst = (int)PyInt_AsLong(value);
     PyObject* ret;
@@ -681,6 +703,9 @@ static PyObject *get_out_stats( PyObject * self, PyObject * value )
 
 static PyObject *get_bw_stats( PyObject * self, PyObject * args )
 {
+    if (death) {
+        Py_RETURN_NONE;
+    }
     //puts("GET BW STATS_LOCKING\n");
     if (!sock) {
             PyErr_SetString(PyExc_AttributeError, "Sock not open");
@@ -737,12 +762,14 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
 
 static PyObject *bora_get_bw_msg( PyObject * self, PyObject * args )
 {
+    if (death) {
+        Py_RETURN_NONE;
+    }
     //puts("GET BW MSG_LOCKING\n");
     if (!sock) {
             PyErr_SetString(PyExc_AttributeError, "Sock not open");
             return NULL;
     }
-    int i, j;
     PyObject* ret;
     BWMsg * b;
     BWMsg * b_temp;
@@ -762,6 +789,9 @@ static PyObject *bora_get_bw_msg( PyObject * self, PyObject * args )
 }
 static PyObject *bora_send_bw_msg( PyObject * self, PyObject * args )
 {
+    if (death) {
+        Py_RETURN_NONE;
+    }
     //puts("SEND BW MSG_LOCKING\n");
     if (!sock) {
             PyErr_SetString(PyExc_AttributeError, "Sock not open");
@@ -847,6 +877,9 @@ static PyObject *bora_send_bw_msg( PyObject * self, PyObject * args )
 
 static PyObject *get_block_content( PyObject * self, PyObject * args )
 {
+    if (death) {
+        Py_RETURN_NONE;
+    }
     //puts("BLOCKCONTENT_LOCKING\n");
     int s_id;
     int b_id;
@@ -874,6 +907,9 @@ static PyObject *get_block_content( PyObject * self, PyObject * args )
 
 static PyObject *bora_bws_set( PyObject * self, PyObject * args )
 {
+    if (death) {
+        Py_RETURN_NONE;
+    }
     //puts("BW SET_LOCKING\n");
     int rst;
     int bws_time;
@@ -961,6 +997,9 @@ initbora(void)
   bora_BPullerType.tp_new = PyType_GenericNew;
   if (PyType_Ready(&bora_BPullerType) < 0)  return;
 
+  bora_BWIterType.tp_new = PyType_GenericNew;
+  if (PyType_Ready(&bora_BWIterType) < 0)  return;
+
   #ifdef __WIN32__
   init_wsa();
   #endif
@@ -972,4 +1011,7 @@ initbora(void)
 
   Py_INCREF(&bora_BPullerType);
   PyModule_AddObject(m, "_BPuller", (PyObject *)&bora_BPullerType);
+
+  Py_INCREF(&bora_BWIterType);
+  PyModule_AddObject(m, "_BWIter", (PyObject *)&bora_BWIterType);
 }

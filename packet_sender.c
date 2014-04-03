@@ -177,21 +177,33 @@ void * send_pull(void* args) {
 void send_data(SendData d) {
   int w = sem_trywait(&qEmpty);
   if (w==-1) {
-    //puts ("QUEUE FULL\n");
+    puts ("ALL QUEUES FULL\n");
     return;
   }
   if (d.data[0] & BLK_ACK) {
     pthread_mutex_lock(&prio_lock);
-    prio_buf[c_prio] = d;
-    c_prio = (c_prio+1)%N_PRIO;
-    f_prio++;
-    pthread_mutex_unlock(&prio_lock);
+    if (f_prio<N_PRIO) {
+        prio_buf[c_prio] = d;
+        c_prio = (c_prio+1)%N_PRIO;
+        f_prio++;
+        pthread_mutex_unlock(&prio_lock);
+    } else {
+        puts("PRIO QUEUE FULL\n");
+        pthread_mutex_unlock(&prio_lock);
+        return;
+    }
   } else {
     pthread_mutex_lock(&send_lock);
-    send_buf[c_send] = d;
-    c_send = (c_send+1)%N_SEND;
-    f_send++;
-    pthread_mutex_unlock(&send_lock);
+    if (f_send<N_SEND) {
+        send_buf[c_send] = d;
+        c_send = (c_send+1)%N_SEND;
+        f_send++;
+        pthread_mutex_unlock(&send_lock);
+    } else {
+        puts("SEND QUEUE FULL\n");
+        pthread_mutex_unlock(&send_lock);
+        return;
+    }
   }
   sem_post(&sFull);
 }
@@ -213,7 +225,7 @@ void init_sender(int s) {
   pthread_mutex_init(&bwLock, NULL);
   pthread_cond_init(&blockProduced, NULL);
   sem_init(&sFull, 0, 0);
-  sem_init(&qEmpty, 0, N_SEND);
+  sem_init(&qEmpty, 0, N_SEND+N_PRIO);
   t1 = pthread_create(&puller_t, NULL, send_pull, NULL);
   if (t1) {
     printf("ERROR; return code from pthread_create() is %d\n", t1);

@@ -180,7 +180,7 @@ void send_data(SendData d) {
     puts ("ALL QUEUES FULL\n");
     return;
   }
-  if (d.data[0] & BLK_ACK) {
+  if (d.data[0] & BLK_ACK || d.data[0] & BW_MSG) {
     pthread_mutex_lock(&prio_lock);
     if (f_prio<N_PRIO) {
         prio_buf[c_prio] = d;

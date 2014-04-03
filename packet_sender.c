@@ -69,7 +69,7 @@ struct timeval packet_send(int s) {
   pthread_mutex_lock(&send_lock);
   if (f_send<S_TRESHOLD) {
     pthread_cond_signal(&produceBlock);
-    puts("COND PRODUCEBLOCK");
+    //puts("COND PRODUCEBLOCK");
   }
   pthread_mutex_unlock(&send_lock);
 
@@ -148,7 +148,7 @@ void * send_packet(void * sock) {
     pthread_mutex_lock(&send_lock);
     if (f_send<S_TRESHOLD) {
       pthread_cond_signal(&produceBlock);
-      puts("COND PRODUCEBLOCK");
+      //puts("COND PRODUCEBLOCK");
     }
     pthread_mutex_unlock(&send_lock);
   }
@@ -177,7 +177,7 @@ void * send_pull(void* args) {
 void send_data(SendData d) {
   int w = sem_trywait(&qEmpty);
   if (w==-1) {
-    puts ("QUEUE FULL\n");
+    //puts ("QUEUE FULL\n");
     return;
   }
   if (d.data[0] & BLK_ACK) {

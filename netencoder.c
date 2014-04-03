@@ -116,6 +116,7 @@ FragmentData * decode_fragment(unsigned char * fragmentstring, ssize_t length) {
 	ret->data = (unsigned char*) malloc(ret->length);
 	if (ret->data == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
 	memcpy(ret->data, fragmentstring+sizeof(FragmentHeader), ret->length);
+	printf("FRAGMENT: sid:%d, bid:%d, fid:%d\n", ret->streamid, ret->blockid, ret->fragmentid);
 	return ret;
 }
 

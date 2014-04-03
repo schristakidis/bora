@@ -188,9 +188,9 @@ void send_data(SendData d) {
         f_prio++;
         pthread_mutex_unlock(&prio_lock);
     } else {
+        sem_post(&qEmpty);
         puts("PRIO QUEUE FULL\n");
         pthread_mutex_unlock(&prio_lock);
-        sem_post(&qEmpty);
         return;
     }
   } else {
@@ -201,9 +201,9 @@ void send_data(SendData d) {
         f_send++;
         pthread_mutex_unlock(&send_lock);
     } else {
+        sem_post(&qEmpty);
         puts("SEND QUEUE FULL\n");
         pthread_mutex_unlock(&send_lock);
-        sem_post(&qEmpty);
         return;
     }
   }

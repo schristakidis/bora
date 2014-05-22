@@ -55,6 +55,8 @@ static uint64_t sleeptime = 1500;
 sem_t sFull;
 sem_t qEmpty;
 
+static struct sockaddr_in* lasthost = NULL;
+
 
 struct timeval packet_send(int s) {
   struct timeval t_start;
@@ -63,44 +65,48 @@ struct timeval packet_send(int s) {
   struct timeval t_idle;
   int c = 0;
   int l;
+  int z = 0;
   SendData d;
   gettimeofday(&t_start, NULL);
 
   pthread_mutex_lock(&send_lock);
   if (f_send<S_TRESHOLD) {
     pthread_cond_signal(&produceBlock);
-    //puts("COND PRODUCEBLOCK");
   }
   pthread_mutex_unlock(&send_lock);
 
   sem_wait(&sFull);
-    //pthread_mutex_lock(&send_lock);
-    //if (f_send<S_TRESHOLD) {
-    //  pthread_cond_signal(&produceBlock);
-    //  puts("COND PRODUCEBLOCK");
-    //}
-    //pthread_mutex_unlock(&send_lock);
+
+  if (lasthost) {
+    struct sockaddr_in* nexthost;
+    pthread_mutex_lock(&send_lock);
+    if (f_send>0) {
+      nexthost = &send_buf[(N_SEND+c_send-f_send)%N_SEND].to;
+      if ((nexthost->sin_port == lasthost->sin_port) && !memcmp(&nexthost->sin_addr, &lasthost->sin_addr, 4)) {
+        z = 1;
+      }
+    }
+    pthread_mutex_unlock(&send_lock);
+    if (z) {
+        puts("\nCONSECUTIVE!\n");
+        goto send_data_packet;
+    }
+  }
+
   pthread_mutex_lock(&prio_lock);
   if (f_prio) {
     d = prio_buf[(N_PRIO+c_prio-f_prio)%N_PRIO];
     f_prio--;
     c = 1;
-  //pthread_mutex_lock(&send_lock);
-  //if (f_send<S_TRESHOLD) {
-  //  pthread_cond_signal(&produceBlock);
-  //  puts("COND PRODUCEBLOCK");
-  //}
-  //pthread_mutex_unlock(&send_lock);
+    puts("SEND PRIO\n");
   }
   pthread_mutex_unlock(&prio_lock);
+
+  send_data_packet:
   if (!c) {
     pthread_mutex_lock(&send_lock);
     d = send_buf[(N_SEND+c_send-f_send)%N_SEND];
     f_send--;
-  //if (f_send<S_TRESHOLD) {
-  //  pthread_cond_signal(&produceBlock);
-  //  puts("COND PRODUCEBLOCK");
-  //}
     pthread_mutex_unlock(&send_lock);
   }
   pthread_mutex_lock(&bwLock);
@@ -109,15 +115,12 @@ struct timeval packet_send(int s) {
   gettimeofday(&t_end, NULL);
   if (d.data[0] & BLK_NEED_ACK) {
     d.length = append_ack(&d, t_end, sleeptime);
-  } //else if ((d.data[0] ^ BLK_ACK) == 0) {
-    //append_ack_ts(&d, &t_end);
-  //}
+  }
   if (sendto(s, d.data, d.length, 0, (struct sockaddr*) &d.to, sizeof(d.to)) == -1) {
     perror("SEND FAILED");
+  } else {
+
   }
-  //if ((d.data[0]&BLK_NEED_ACK) == 0) {
-  //  free(d.data);
-  //}
   l=d.length;
   sem_post(&qEmpty);
   timersub(&t_end, &t_start, &ret);
@@ -131,6 +134,13 @@ struct timeval packet_send(int s) {
   stats_s[O_PKG_COUNTER]++;
   stats_s[O_DATA_COUNTER] += l;
   pthread_mutex_unlock(&stat_lock_s);
+  if (z) {
+    lasthost = NULL;
+  } else {
+    lasthost = malloc(sizeof(struct sockaddr_in));
+    //TODO CHECK ALLOCATION
+    memcpy(lasthost, &d.to, sizeof(struct sockaddr_in));
+  }
   return ret;
 }
 

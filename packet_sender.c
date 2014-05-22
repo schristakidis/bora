@@ -111,6 +111,7 @@ struct timeval packet_send(int s) {
     d = send_buf[(N_SEND+c_send-f_send)%N_SEND];
     f_send--;
     pthread_mutex_unlock(&send_lock);
+    puts("SEND DATA\n");
   }
   pthread_mutex_lock(&bwLock);
   sleeptime = (uint64_t)(1000000L * d.length / bandwidth);
@@ -122,15 +123,15 @@ struct timeval packet_send(int s) {
   if (sendto(s, d.data, d.length, 0, (struct sockaddr*) &d.to, sizeof(d.to)) == -1) {
     perror("SEND FAILED");
   } else {
-
-    if (z && !c) {
-      lasthost = NULL;
-    } else {
-      lasthost = malloc(sizeof(struct sockaddr_in));
-      //TODO CHECK ALLOCATION
-      memcpy(lasthost, &d.to, sizeof(struct sockaddr_in));
+    if (!c) {
+      if (z) {
+        lasthost = NULL;
+      } else {
+        lasthost = malloc(sizeof(struct sockaddr_in));
+        //TODO CHECK ALLOCATION
+        memcpy(lasthost, &d.to, sizeof(struct sockaddr_in));
+      }
     }
-
   }
   l=d.length;
   sem_post(&qEmpty);

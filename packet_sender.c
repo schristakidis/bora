@@ -90,6 +90,8 @@ struct timeval packet_send(int s) {
     if (z) {
         puts("\nCONSECUTIVE!\n");
         goto send_data_packet;
+    } else {
+        lasthost = NULL;
     }
   }
 
@@ -98,6 +100,7 @@ struct timeval packet_send(int s) {
     d = prio_buf[(N_PRIO+c_prio-f_prio)%N_PRIO];
     f_prio--;
     c = 1;
+    lasthost = NULL;
     puts("SEND PRIO\n");
   }
   pthread_mutex_unlock(&prio_lock);

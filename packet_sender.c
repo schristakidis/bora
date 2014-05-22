@@ -123,7 +123,7 @@ struct timeval packet_send(int s) {
     perror("SEND FAILED");
   } else {
 
-    if (z) {
+    if (z && !c) {
       lasthost = NULL;
     } else {
       lasthost = malloc(sizeof(struct sockaddr_in));

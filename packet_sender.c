@@ -123,6 +123,14 @@ struct timeval packet_send(int s) {
     perror("SEND FAILED");
   } else {
 
+    if (z) {
+      lasthost = NULL;
+    } else {
+      lasthost = malloc(sizeof(struct sockaddr_in));
+      //TODO CHECK ALLOCATION
+      memcpy(lasthost, &d.to, sizeof(struct sockaddr_in));
+    }
+
   }
   l=d.length;
   sem_post(&qEmpty);
@@ -137,13 +145,6 @@ struct timeval packet_send(int s) {
   stats_s[O_PKG_COUNTER]++;
   stats_s[O_DATA_COUNTER] += l;
   pthread_mutex_unlock(&stat_lock_s);
-  if (z) {
-    lasthost = NULL;
-  } else {
-    lasthost = malloc(sizeof(struct sockaddr_in));
-    //TODO CHECK ALLOCATION
-    memcpy(lasthost, &d.to, sizeof(struct sockaddr_in));
-  }
   return ret;
 }
 

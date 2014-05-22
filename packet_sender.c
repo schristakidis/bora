@@ -82,7 +82,7 @@ struct timeval packet_send(int s) {
     pthread_mutex_lock(&send_lock);
     if (f_send>0) {
       nexthost = &send_buf[(N_SEND+c_send-f_send)%N_SEND].to;
-      if ((nexthost->sin_port == lasthost->sin_port) && !memcmp(&nexthost->sin_addr, &lasthost->sin_addr, 4)) {
+      if ((nexthost->sin_port == lasthost->sin_port) && (memcmp(&nexthost->sin_addr, &lasthost->sin_addr, 4)==0)) {
         z = 1;
       }
     }

@@ -158,7 +158,7 @@ void * packet_processor(void*args) {
                 //puts("FADDED");
                 fragment_received((RecvFragment) {.from = buffer[c].from, .fromlen = buffer[c].fromlen,
                                                   .streamid = fragment->streamid, .blockid = fragment->blockid, .fragmentid = fragment->fragmentid,
-                                                  .buflen = buffer[c].buflen, .tv = buffer[c].tv});
+                                                  .buflen = buffer[c].buflen, .tv = buffer[c].tv, .flags=buffer[c].buf[0]});
                 if(iscomplete(fragment->streamid, fragment->blockid)) {
                 block_completed(fragment->streamid, fragment->blockid);}
                 break;

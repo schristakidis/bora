@@ -120,6 +120,9 @@ struct timeval packet_send(int s) {
   if (d.data[0] & BLK_NEED_ACK) {
     d.length = append_ack(&d, t_end, sleeptime);
   }
+  if (z) {
+    d.data[0]=d.data[0]|BLOCK_CONSECUTIVE;
+  }
   if (sendto(s, d.data, d.length, 0, (struct sockaddr*) &d.to, sizeof(d.to)) == -1) {
     perror("SEND FAILED");
   } else {

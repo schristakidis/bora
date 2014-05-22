@@ -2,6 +2,7 @@
 #include <string.h>
 #include <pthread.h>
 #include "queue.h"
+#include "messages.h"
 #include "recv_stats.h"
 
 static struct bwstruct estimations;
@@ -41,7 +42,8 @@ void fragment_received(RecvFragment fragment) {
 
     if (host_bw->lastfragment.streamid   == fragment.streamid &&
         host_bw->lastfragment.blockid    == fragment.blockid  &&
-        host_bw->lastfragment.fragmentid +1 == fragment.fragmentid) {
+        host_bw->lastfragment.fragmentid +1 == fragment.fragmentid &&
+        fragment.flags&BLOCK_CONSECUTIVE) {
 
         BW * band = (BW*)malloc(sizeof(BW));
         band->tv = fragment.tv;

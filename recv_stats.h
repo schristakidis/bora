@@ -23,6 +23,7 @@ typedef struct RecvFragment {
   uint16_t fragmentid;
   size_t buflen;
   struct timeval tv;
+  unsigned char flags;
 } RecvFragment;
 
 typedef struct BW {

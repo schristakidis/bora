@@ -88,7 +88,7 @@ struct timeval packet_send(int s) {
     }
     pthread_mutex_unlock(&send_lock);
     if (z) {
-        puts("\nCONSECUTIVE!\n");
+        //puts("\nCONSECUTIVE!\n");
         goto send_data_packet;
     } else {
         lasthost = NULL;
@@ -101,7 +101,7 @@ struct timeval packet_send(int s) {
     f_prio--;
     c = 1;
     lasthost = NULL;
-    puts("SEND PRIO\n");
+    //puts("SEND PRIO\n");
   }
   pthread_mutex_unlock(&prio_lock);
 
@@ -111,7 +111,7 @@ struct timeval packet_send(int s) {
     d = send_buf[(N_SEND+c_send-f_send)%N_SEND];
     f_send--;
     pthread_mutex_unlock(&send_lock);
-    puts("SEND DATA\n");
+    //puts("SEND DATA\n");
   }
   pthread_mutex_lock(&bwLock);
   sleeptime = (uint64_t)(1000000L * d.length / bandwidth);
@@ -131,7 +131,7 @@ struct timeval packet_send(int s) {
         lasthost = NULL;
       } else {
         lasthost = malloc(sizeof(struct sockaddr_in));
-        //TODO CHECK ALLOCATION
+        if (lasthost == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
         memcpy(lasthost, &d.to, sizeof(struct sockaddr_in));
       }
     }

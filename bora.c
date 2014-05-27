@@ -330,7 +330,9 @@ PyObject* bora_BWIter_iternext(PyObject *self)
           PyList_Append(peer_values, peer_stats_dict);
 
           SLIST_REMOVE(&peercur->ack_store, peerscur, AckStore, entries);
-          free(peerscur);
+          if (peerscur != ackstats.last_seq) {
+            free(peerscur);
+          }
         }
         PyDict_SetItemString(peer_dict, "values", Py_BuildValue("O", peer_values));
         PyList_Append(peer_stats, peer_dict);
@@ -347,6 +349,7 @@ PyObject* bora_BWIter_iternext(PyObject *self)
         PyDict_SetItemString(last_seq_dict, "STT", Py_BuildValue("l", ackstats.last_seq->STT.tv_sec * 1000000L + ackstats.last_seq->STT.tv_usec));
         PyDict_SetItemString(last_seq_dict, "seq", Py_BuildValue("i", ackstats.last_seq->seq));
         PyDict_SetItemString(last_seq_dict, "sleep", Py_BuildValue("i", ackstats.last_seq->sleeptime));
+        free(ls);
       } else {
         last_seq_dict = Py_BuildValue("");
       }

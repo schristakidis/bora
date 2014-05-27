@@ -23,14 +23,17 @@ typedef struct AckReceived {
 } AckReceived;
 
 typedef struct AckStore {
-  int has_data;
+  //int has_data;
   struct sockaddr_in * addr;
   struct timeval sent;
   struct timeval RTT;
   struct timeval STT;
   uint16_t seq;
   uint32_t sleeptime;
+  SLIST_ENTRY(AckStore) entries;
 } AckStore;
+
+SLIST_HEAD(Ack_values, AckStore);
 
 typedef struct PeerAckStore {
   struct sockaddr_in addr;
@@ -40,7 +43,7 @@ typedef struct PeerAckStore {
   struct timeval avgSTT;
   struct timeval errRTT;
   struct timeval errSTT;
-  struct AckStore ack_store[ACKSTORE_N];
+  struct Ack_values ack_store;
   int cur;
   uint64_t total_acked;
   uint64_t total_errors;

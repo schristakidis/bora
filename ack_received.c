@@ -25,18 +25,20 @@ PeerAckStore * find_peer_by_host(struct sockaddr_in * from) {
 }
 
 // trip: 1 = STT 2 = RTT
-struct timeval compute_average (AckStore * ack_store, int trip) {
+struct timeval compute_average (struct Ack_values * ack_store, int trip) {
   struct timeval ret = (struct timeval) {0};
-  int i;
+  int i = 0;
+  AckStore * cur;
   int64_t sec = 0;
   int64_t usec = 0;
-  for (i=0;  i<ACKSTORE_N; i++) {
-    if (trip == 1 && ack_store[i].has_data == 1) {
-      sec += ack_store[i].STT.tv_sec;
-      usec += ack_store[i].STT.tv_usec;
-    } else if(trip == 2 && ack_store[i].has_data == 1) {
-      sec += ack_store[i].RTT.tv_sec;
-      usec += ack_store[i].RTT.tv_usec;
+  SLIST_FOREACH(cur, ack_store, entries) {
+    i++;
+    if (trip==1) {
+      sec += cur->STT.tv_sec;
+      usec += cur->STT.tv_usec;
+    } else if (trip ==2) {
+      sec += cur->RTT.tv_sec;
+      usec += cur->RTT.tv_usec;
     }
   }
   if (i<1) {
@@ -50,6 +52,7 @@ struct timeval compute_average (AckStore * ack_store, int trip) {
 int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, struct sockaddr_in from) {
   int i;
   PeerAckStore * peer;
+  AckStore * ack_store;
   struct timeval ack_recv_t = (struct timeval) {.tv_sec = (time_t)ack_r->sec, .tv_usec = (time_t)ack_r->usec};
   pthread_mutex_lock(&ack_list);
   peer = find_peer_by_host(&from);
@@ -58,23 +61,22 @@ int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, stru
     peer = (PeerAckStore*)malloc(sizeof(PeerAckStore));
     if (peer == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
     peer->addr = from;
-    for (i = 1; i<ACKSTORE_N; i++) {
-        peer->ack_store[i].has_data = 0;
-        peer->ack_store[i].addr = &peer->addr;
-    }
+    peer->ack_store = ((struct Ack_values){.slh_first = NULL});
+
     peer->cur = 0;
-    peer->ack_store[peer->cur].has_data = 1;
-    peer->ack_store[peer->cur].addr = &peer->addr;
-    timersub(&ack_recv_t, &ack_s->sendtime, &peer->ack_store[0].STT);
-    timersub(&received, &ack_s->sendtime, &peer->ack_store[0].RTT);
-    peer->ack_store[peer->cur].seq = ack_s->seq;
-    peer->ack_store[peer->cur].sent = ack_s->sendtime;
-    peer->ack_store[peer->cur].sleeptime = ack_s->sleeptime;
-    peer->avgRTT = peer->ack_store[peer->cur].RTT;
-    peer->minRTT = peer->ack_store[peer->cur].RTT;
+    ack_store = (AckStore*)malloc(sizeof(AckStore));
+    if (ack_store == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
+    ack_store->addr = &peer->addr;
+    timersub(&ack_recv_t, &ack_s->sendtime, &ack_store->STT);
+    timersub(&received, &ack_s->sendtime, &ack_store->RTT);
+    ack_store->seq = ack_s->seq;
+    ack_store->sent = ack_s->sendtime;
+    ack_store->sleeptime = ack_s->sleeptime;
+    peer->avgRTT = ack_store->RTT;
+    peer->minRTT = ack_store->RTT;
     peer->errRTT = (struct timeval) {0};
-    peer->avgSTT = peer->ack_store[peer->cur].STT;
-    peer->minSTT = peer->ack_store[peer->cur].STT;
+    peer->avgSTT = ack_store->STT;
+    peer->minSTT = ack_store->STT;
     peer->errSTT = (struct timeval) {0};
     peer->total_acked = 1;
     peer->last_acked = 1;
@@ -82,38 +84,48 @@ int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, stru
     peer->last_error = 0;
     if (highest_seq!=NULL) {
         if (highest_seq->seq < ack_s->seq) {
-            highest_seq = &peer->ack_store[0];
+            highest_seq = ack_store;
         }
     } else {
-        highest_seq = &peer->ack_store[0];
+        highest_seq = ack_store;
     }
+    SLIST_INSERT_HEAD(&peer->ack_store, ack_store, entries);
     SLIST_INSERT_HEAD(&peeracklist, peer, entries);
   } else {
   struct timeval prevRTT;
   struct timeval prevSTT;
-    if (peer->ack_store[peer->cur].has_data == 1) {
-        prevRTT = peer->ack_store[peer->cur].RTT;
-        prevSTT = peer->ack_store[peer->cur].STT;
+  AckStore * prevackstore = SLIST_FIRST(&peer->ack_store);
+    if (prevackstore) {
+        prevRTT = prevackstore->RTT;
+        prevSTT = prevackstore->STT;
     } else {
         timersub(&ack_recv_t, &ack_s->sendtime, &prevSTT);
         timersub(&received, &ack_s->sendtime, &prevRTT);
     }
-    peer->cur = (peer->cur + 1) % ACKSTORE_N;
-    peer->ack_store[peer->cur].has_data = 1;
-    peer->ack_store[peer->cur].addr = &peer->addr;
-    timersub(&ack_recv_t, &ack_s->sendtime, &peer->ack_store[0].STT);
-    timersub(&received, &ack_s->sendtime, &peer->ack_store[0].RTT);
-    peer->ack_store[peer->cur].seq = ack_s->seq;
-    peer->ack_store[peer->cur].sent = ack_s->sendtime;
-    peer->ack_store[peer->cur].sleeptime = ack_s->sleeptime;
-    peer->avgRTT = compute_average(peer->ack_store, 2);
-    if (timercmp(&peer->ack_store[peer->cur].RTT, &peer->minRTT, <)) {
-        peer->minRTT = peer->ack_store[peer->cur].RTT;
+    //peer->cur = (peer->cur + 1) % ACKSTORE_N;
+    //peer->ack_store[peer->cur].has_data = 1;
+    ack_store = (AckStore*)malloc(sizeof(AckStore));
+    if (ack_store == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
+
+    ack_store->addr = &peer->addr;
+    timersub(&ack_recv_t, &ack_s->sendtime, &ack_store->STT);
+    timersub(&received, &ack_s->sendtime, &ack_store->RTT);
+    ack_store->seq = ack_s->seq;
+    ack_store->sent = ack_s->sendtime;
+    ack_store->sleeptime = ack_s->sleeptime;
+    if (timercmp(&ack_store->RTT, &peer->minRTT, <)) {
+        peer->minRTT = ack_store->RTT;
     }
-    peer->avgSTT = compute_average(peer->ack_store, 1);
-    if (timercmp(&peer->ack_store[peer->cur].STT, &peer->minSTT, <)) {
-        peer->minSTT = peer->ack_store[peer->cur].STT;
+
+    if (timercmp(&ack_store->STT, &peer->minSTT, <)) {
+        peer->minSTT = ack_store->STT;
     }
+
+    SLIST_INSERT_HEAD(&peer->ack_store, ack_store, entries);
+
+    peer->avgRTT = ack_store->RTT;//compute_average(&peer->ack_store, 2);
+    peer->avgSTT = ack_store->STT;//compute_average(&peer->ack_store, 1);
+
     peer->total_acked += 1;
     peer->last_acked += 1;
     int errors = remove_ooo_nacks(ack_s);
@@ -125,10 +137,10 @@ int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, stru
     }
     if (highest_seq!=NULL) {
         if (highest_seq->seq < ack_s->seq) {
-            highest_seq = &peer->ack_store[peer->cur];
+            highest_seq = ack_store;
         }
     } else {
-        highest_seq = &peer->ack_store[0];
+        highest_seq = ack_store;
     }
 
   }

@@ -291,11 +291,15 @@ PyObject* bora_BWIter_iternext(PyObject *self)
       PyObject * ret;
       PyObject * sent_data;
       PyObject * peer_stats;
+      PyObject * peer_values;
       PyObject * peer_dict;
+      PyObject * peer_stats_dict;
       PyObject * last_seq_dict;
       PyObject * current_seq;
       struct PeerAckStats ackstats;
       PeerAckStore * peercur;
+      AckStore * peerscur;
+      AckStore * tmppeerscur;
       char ip_addr[INET_ADDRSTRLEN];
 
       peer_stats = PyList_New(0);
@@ -315,6 +319,20 @@ PyObject* bora_BWIter_iternext(PyObject *self)
         PyDict_SetItemString(peer_dict, "error_total", Py_BuildValue("l", peercur->total_errors));
         PyDict_SetItemString(peer_dict, "acked_last", Py_BuildValue("l", peercur->last_acked));
         PyDict_SetItemString(peer_dict, "error_last", Py_BuildValue("l", peercur->last_error));
+        peer_values = PyList_New(0);
+        SLIST_FOREACH_SAFE(peerscur, &peercur->ack_store, entries, tmppeerscur) {
+          peer_stats_dict = PyDict_New();
+          PyDict_SetItemString(peer_stats_dict, "sent", Py_BuildValue("d", (double)peerscur->sent.tv_sec + (double)peerscur->sent.tv_usec/1000000.0));
+          PyDict_SetItemString(peer_stats_dict, "RTT", Py_BuildValue("l", peerscur->RTT.tv_sec * 1000000L + peerscur->RTT.tv_usec));
+          PyDict_SetItemString(peer_stats_dict, "STT", Py_BuildValue("l", peerscur->STT.tv_sec * 1000000L + peerscur->STT.tv_usec));
+          PyDict_SetItemString(peer_stats_dict, "seq", Py_BuildValue("i", peerscur->seq));
+          PyDict_SetItemString(peer_stats_dict, "sleep", Py_BuildValue("i", peerscur->sleeptime));
+          PyList_Append(peer_values, peer_stats_dict);
+
+          SLIST_REMOVE(&peercur->ack_store, peerscur, AckStore, entries);
+          free(peerscur);
+        }
+        PyDict_SetItemString(peer_dict, "values", Py_BuildValue("O", peer_values));
         PyList_Append(peer_stats, peer_dict);
       }
 

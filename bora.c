@@ -465,6 +465,7 @@ static PyObject* die(PyObject* self, PyObject * value )
     if (bws_running) { sem_post(&s_bws_hasdata); bws_running = 0;}
     sem_post(&s_bpuller_full);
     sem_post(&s_biter_full);
+    cookie_cleanup();
     if (close(sock)==-1) {
       perror("Could not close socket");
       Py_RETURN_NONE;
@@ -1019,6 +1020,9 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
     //puts("SEND COOKIE UNLOCKING\n");
     Py_BEGIN_ALLOW_THREADS
     sem_res = sem_timedwait(&ckEmpty, &ckTimeout);
+    Py_END_ALLOW_THREADS
+    //puts("SEND COOKIE LOCKING\n");
+
     if (sem_res == 0) {
         for (i=0; i<2; i++) {
             dict_ck = PyDict_New();
@@ -1040,9 +1044,6 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
     } else {
         cookie_cleanup();
     }
-
-    Py_END_ALLOW_THREADS
-    //puts("SEND COOKIE LOCKING\n");
 
 
     return res;

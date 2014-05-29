@@ -20,7 +20,6 @@ typedef struct SendData {
   unsigned char data[1500];
   uint32_t length;
   struct sockaddr_in to;
-  uint32_t sleeptime;
 } SendData;
 
 

@@ -67,7 +67,7 @@ void * packet_processor(void*args) {
     pthread_mutex_lock(&stat_lock_r);
     if (buffer[c].buflen>1) {
       // IF ACK IS REQUIRED SEND ACK IMMEDIATELY
-      if (buffer[c].buf[0] & BLK_NEED_ACK) {
+      if (buffer[c].buf[0] & NEED_ACK) {
         if (validate_block(&buffer[c].buf[0], buffer[c].buflen-ACKSIZE)) {
           // GET seq for ACK request
           cookie = strip_ack(buffer[c].buf, buffer[c].buflen);

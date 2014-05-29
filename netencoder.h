@@ -34,4 +34,6 @@ int validate_block(unsigned char * blob, size_t l);
 
 void append_ack_ts(SendData *s, struct timeval *ts);
 
+int get_header_size (void);
+
 #endif

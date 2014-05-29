@@ -74,7 +74,16 @@ int validate_block(unsigned char * blob, size_t l) {
       return 1;
     }
   }
+  if (l==(sizeof(FragmentHeader)+MTU)) {
+    if (blob[0] == (NEED_ACK | COOKIE_MSG) ) {
+      return 1;
+    }
+  }
   return 0;
+}
+
+int get_header_size (void) {
+    return sizeof(FragmentHeader);
 }
 
 SendData encode_fragment(FragmentData * fragment) {

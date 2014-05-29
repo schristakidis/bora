@@ -4,6 +4,8 @@
 #include <string.h>
 #include <assert.h>
 
+#include "messages.h"
+#include "cookie_sender.h"
 #include "ack_received.h"
 
 //AckStore * ack_storage = NULL;
@@ -50,7 +52,6 @@ struct timeval compute_average (struct Ack_values * ack_store, int trip) {
 }
 
 int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, struct sockaddr_in from) {
-  int i;
   PeerAckStore * peer;
   AckStore * ack_store;
   struct timeval ack_recv_t = (struct timeval) {.tv_sec = (time_t)ack_r->sec, .tv_usec = (time_t)ack_r->usec};
@@ -102,8 +103,6 @@ int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, stru
         timersub(&ack_recv_t, &ack_s->sendtime, &prevSTT);
         timersub(&received, &ack_s->sendtime, &prevRTT);
     }
-    //peer->cur = (peer->cur + 1) % ACKSTORE_N;
-    //peer->ack_store[peer->cur].has_data = 1;
     ack_store = (AckStore*)malloc(sizeof(AckStore));
     if (ack_store == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
 
@@ -143,6 +142,9 @@ int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, stru
         highest_seq = ack_store;
     }
 
+  }
+  if (ack_s->d.data[0] == (NEED_ACK | COOKIE_MSG) ) {
+    cookie_received(ack_store);
   }
   pthread_mutex_unlock(&ack_list);
   return 1;

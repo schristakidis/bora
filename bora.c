@@ -29,6 +29,7 @@
 #include "ack_received.h"
 #include "bw_stats.h"
 #include "bw_msgs.h"
+#include "cookie_sender.h"
 
 static int sock = 0;
 
@@ -948,6 +949,101 @@ static PyObject *bora_bws_set( PyObject * self, PyObject * args )
 }
 
 
+static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
+{
+    PyObject * res;
+    PyObject * dict_ck;
+
+
+    unsigned char * dest1;
+    int dest1_len;
+    int port1_num;
+    unsigned char * dest2;
+    int dest2_len;
+    int port2_num;
+    struct timespec ckTimeout = {.tv_sec = 1, .tv_nsec = 0};
+
+    int sem_res;
+    int i;
+
+    int s;
+    int t;
+
+
+    struct sockaddr_in destaddr1 = {0};
+    struct sockaddr_in destaddr2 = {0};
+
+    if (!PyArg_ParseTuple(args, "s#is#i", &dest1, &dest1_len, &port1_num, &dest2, &dest2_len, &port2_num)) {
+                PyErr_SetString(PyExc_AttributeError, "Wrong arguments");
+                return NULL;
+    }
+    destaddr1.sin_family = AF_INET;
+    destaddr2.sin_family = AF_INET;
+
+    #ifdef __WIN32__
+    destaddr1.sin_addr.s_addr = s = inet_addr((const char*)dest1);
+    destaddr2.sin_addr.s_addr = s = inet_addr((const char*)dest2);
+    #else
+    s = inet_pton(AF_INET, (const char*)dest1, &(destaddr1.sin_addr));
+    t = inet_pton(AF_INET, (const char*)dest2, &(destaddr2.sin_addr));
+    #endif
+
+    if (s <= 0 || t <= 0) {
+               if (s == 0 || t == 0) {
+                  PyErr_SetString(PyExc_AttributeError, "DEST IP: Not in presentation format");
+                  return NULL;
+               } else {
+                  PyErr_SetString(PyExc_AttributeError, "DEST IP: Not in presentation format");
+                  perror("inet_pton");
+                  return NULL;
+               }
+    }
+
+    if (port1_num>65535 || port1_num<1 || port2_num>65535 || port2_num<1) {
+                  PyErr_SetString(PyExc_AttributeError, "Port number not allowed");
+                  return NULL;
+    }
+    destaddr1.sin_port=htons(port1_num);
+    destaddr2.sin_port=htons(port2_num);
+
+    res = PyList_New(0);
+
+    send_cookie(&destaddr1, &destaddr2);
+
+    //puts("SEND COOKIE UNLOCKING\n");
+    Py_BEGIN_ALLOW_THREADS
+    sem_res = sem_timedwait(&ckEmpty, &ckTimeout);
+    if (sem_res == 0) {
+        for (i=0; i<2; i++) {
+            dict_ck = PyDict_New();
+            if (i==1) {
+            PyDict_SetItemString(dict_ck, "host", Py_BuildValue("s#", dest1, dest1_len));
+            PyDict_SetItemString(dict_ck, "port", Py_BuildValue("i", port1_num));
+            } else {
+            PyDict_SetItemString(dict_ck, "host", Py_BuildValue("s#", dest2, dest2_len));
+            PyDict_SetItemString(dict_ck, "port", Py_BuildValue("i", port2_num));
+            }
+            PyDict_SetItemString(dict_ck, "sent", Py_BuildValue("d", (double)ckResult[i].sent.tv_sec + (double)ckResult[i].sent.tv_usec/1000000.0));
+            PyDict_SetItemString(dict_ck, "RTT", Py_BuildValue("l", ckResult[i].RTT.tv_sec * 1000000L + ckResult[i].RTT.tv_usec));
+            PyDict_SetItemString(dict_ck, "STT", Py_BuildValue("l", ckResult[i].STT.tv_sec * 1000000L + ckResult[i].STT.tv_usec));
+            PyDict_SetItemString(dict_ck, "seq", Py_BuildValue("i", ckResult[i].seq));
+            PyDict_SetItemString(dict_ck, "sleep", Py_BuildValue("i", ckResult[i].sleeptime));
+            PyList_Append(res, dict_ck);
+        }
+        sem_post(&ckEmpty);
+    } else {
+        cookie_cleanup();
+    }
+
+    Py_END_ALLOW_THREADS
+    //puts("SEND COOKIE LOCKING\n");
+
+
+    return res;
+
+}
+
+
 // THIS IS METHOD DOCS
 static char listen_docs[] =
     "listen_on( port ): Setup socket and listen on port\n";
@@ -983,6 +1079,8 @@ static char send_bw_msg_docs[] =
     "send_bw_msg( [list of {ip, port, bw}] ): Send bandwidth estimation messages to the peers\n";
 static char get_bw_msg_docs[] =
     "get_bw_msg( ): Get bandwidth estimation messages received from the peers\n";
+static char send_cookie_docs[] =
+    "send_cookie( address1, port1, address2, port2 ): Send cookie packets to two peers\n";
 
 
 
@@ -1004,6 +1102,7 @@ static PyMethodDef BoraMethods[] = {
     {"bws_set", bora_bws_set, METH_VARARGS, bws_set_docs},
     {"send_bw_msg", bora_send_bw_msg, METH_VARARGS, send_bw_msg_docs},
     {"get_bw_msg", bora_get_bw_msg, METH_NOARGS, get_bw_msg_docs},
+    {"bora_send_cookie", bora_send_cookie, METH_VARARGS, send_cookie_docs},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

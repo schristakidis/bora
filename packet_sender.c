@@ -21,6 +21,7 @@
 #include "netencoder.h"
 #include "stats_bridge.h"
 #include "bpuller_bridge.h"
+#include "cookie_sender.h"
 
 #define N_SEND 2000
 #define S_TRESHOLD 3
@@ -56,6 +57,7 @@ sem_t sFull;
 sem_t qEmpty;
 
 static struct sockaddr_in* lasthost = NULL;
+static struct sockaddr_in* lhalloc;
 
 
 struct timeval packet_send(int s) {
@@ -91,8 +93,14 @@ struct timeval packet_send(int s) {
         //puts("\nCONSECUTIVE!\n");
         goto send_data_packet;
     } else {
+        free(lasthost);
         lasthost = NULL;
     }
+  }
+
+  if (sem_trywait(&ckFull)==0) {
+    d = *(get_cookie_data());
+    goto send_d;
   }
 
   pthread_mutex_lock(&prio_lock);
@@ -100,7 +108,6 @@ struct timeval packet_send(int s) {
     d = prio_buf[(N_PRIO+c_prio-f_prio)%N_PRIO];
     f_prio--;
     c = 1;
-    lasthost = NULL;
     //puts("SEND PRIO\n");
   }
   pthread_mutex_unlock(&prio_lock);
@@ -113,11 +120,13 @@ struct timeval packet_send(int s) {
     pthread_mutex_unlock(&send_lock);
     //puts("SEND DATA\n");
   }
+
+  send_d:
   pthread_mutex_lock(&bwLock);
   sleeptime = (uint64_t)(1000000L * d.length / bandwidth);
   pthread_mutex_unlock(&bwLock);
   gettimeofday(&t_end, NULL);
-  if (d.data[0] & BLK_NEED_ACK) {
+  if (d.data[0] & NEED_ACK) {
     d.length = append_ack(&d, t_end, sleeptime);
   }
   if (z) {
@@ -128,10 +137,10 @@ struct timeval packet_send(int s) {
   } else {
     if (!c) {
       if (z) {
+        free(lasthost);
         lasthost = NULL;
-      } else {
-        lasthost = malloc(sizeof(struct sockaddr_in));
-        if (lasthost == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
+      } else if (d.data[0] & BLK_BLOCK) {
+        lasthost = lhalloc;
         memcpy(lasthost, &d.to, sizeof(struct sockaddr_in));
       }
     }
@@ -238,6 +247,8 @@ void init_sender(int s) {
   void * sock = (void*) malloc(sizeof(int));
   if (sock == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
   memcpy(sock, &s, sizeof(int));
+  lhalloc = malloc(sizeof(struct sockaddr_in));
+  if (lhalloc == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
   int t1, t2;
   memset(&stats_s, 0, sizeof(stats_s));
   pthread_mutex_init(&stat_lock_s, NULL);
@@ -263,3 +274,5 @@ uint64_t get_idle(void) {
   idleTime = (struct timeval) {0};
   return ret;
 }
+
+

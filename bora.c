@@ -515,7 +515,7 @@ static PyObject *listen_on( PyObject * self, PyObject * value)
         init_biter();
         init_bpuller();
         init_recv_stats();
-
+        init_cksender();
 
         Py_RETURN_NONE;
 }
@@ -951,6 +951,12 @@ static PyObject *bora_bws_set( PyObject * self, PyObject * args )
 
 static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
 {
+
+    if (!sock) {
+            PyErr_SetString(PyExc_AttributeError, "Sock not open");
+            return NULL;
+    }
+
     PyObject * res;
     PyObject * dict_ck;
 

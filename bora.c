@@ -1109,7 +1109,7 @@ static PyMethodDef BoraMethods[] = {
     {"bws_set", bora_bws_set, METH_VARARGS, bws_set_docs},
     {"send_bw_msg", bora_send_bw_msg, METH_VARARGS, send_bw_msg_docs},
     {"get_bw_msg", bora_get_bw_msg, METH_NOARGS, get_bw_msg_docs},
-    {"bora_send_cookie", bora_send_cookie, METH_VARARGS, send_cookie_docs},
+    {"send_cookie", bora_send_cookie, METH_VARARGS, send_cookie_docs},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

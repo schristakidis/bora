@@ -72,7 +72,7 @@ SendData * get_cookie_data (void) {
 int cookie_received (AckStore * ack) {
     //pthread_mutex_lock(&ckLock);
 
-    if (gotcookie[1] == 0 && memcmp(ack->addr, &ckData[0].to, sizeof(struct sockaddr_in)) == 0) {
+    if (gotcookie[0] == 0 && memcmp(ack->addr, &ckData[0].to, sizeof(struct sockaddr_in)) == 0) {
         gotcookie[0] = 1;
         memcpy(&ckAck[0].addr, ack->addr, sizeof(struct sockaddr_in));
         memcpy(&ckAck[0].sent, &ack->sent, sizeof(struct timeval));

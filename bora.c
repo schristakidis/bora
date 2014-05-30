@@ -1,3 +1,4 @@
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #include <Python.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -30,6 +31,8 @@
 #include "bw_stats.h"
 #include "bw_msgs.h"
 #include "cookie_sender.h"
+
+#define UNUSED(x) (void)(x)
 
 static int sock = 0;
 
@@ -67,6 +70,7 @@ PyObject* bora_BPuller_iter(PyObject *self)
 
 PyObject* bora_BPuller_iternext(PyObject *self)
 {
+  UNUSED(self);
   //bora_BPuller *p = (bora_BPuller *)self;
   if (!death) {
     //puts("BPULLER UNLOCKING\n");
@@ -125,6 +129,8 @@ static PyTypeObject bora_BPullerType = {
 static PyObject *
 bora_bpuller(PyObject *self, PyObject *args)
 {
+  UNUSED(self);
+  UNUSED(args);
   if (!sock) {
         PyErr_SetString(PyExc_AttributeError, "Sock not open");
         return NULL;
@@ -170,6 +176,7 @@ PyObject* bora_BIter_iter(PyObject *self)
 
 PyObject* bora_BIter_iternext(PyObject *self)
 {
+  UNUSED(self);
   //bora_BIter *p = (bora_BIter *)self;
   if (!death) {
     int s, b;
@@ -236,6 +243,8 @@ static PyTypeObject bora_BIterType = {
 static PyObject *
 bora_biter(PyObject *self, PyObject *args)
 {
+  UNUSED(self);
+  UNUSED(args);
   if (!sock) {
         PyErr_SetString(PyExc_AttributeError, "Sock not open");
         return NULL;
@@ -277,7 +286,7 @@ PyObject* bora_BWIter_iter(PyObject *self)
 
 PyObject* bora_BWIter_iternext(PyObject *self)
 {
-
+  UNUSED(self);
   //bora_BWIter *p = (bora_BWIter *)self;
   if (!death) {
     //puts("BWS_UNLOCKING\n");
@@ -423,6 +432,7 @@ static PyTypeObject bora_BWIterType = {
 static PyObject *
 bora_bwiter(PyObject *self, PyObject *value)
 {
+  UNUSED(self);
   if (!sock) {
         PyErr_SetString(PyExc_AttributeError, "Sock not open");
         return NULL;
@@ -457,6 +467,8 @@ bora_bwiter(PyObject *self, PyObject *value)
 
 static PyObject* die(PyObject* self, PyObject * value )
 {
+    UNUSED(self);
+    UNUSED(value);
     if (!sock) {
       PyErr_SetString(PyExc_AttributeError, "Sock is not open. Generators not running?");
       return NULL;
@@ -476,6 +488,7 @@ static PyObject* die(PyObject* self, PyObject * value )
 
 static PyObject *listen_on( PyObject * self, PyObject * value)
 {
+        UNUSED(self);
         if (sock) {
                 PyErr_SetString(PyExc_AttributeError, "Sock already open");
                 return NULL;
@@ -523,6 +536,7 @@ static PyObject *listen_on( PyObject * self, PyObject * value)
 
 static PyObject *send_block( PyObject * self, PyObject * args )
 {
+    UNUSED(self);
     if (death) {
         Py_RETURN_NONE;
     }
@@ -583,6 +597,7 @@ static PyObject *send_block( PyObject * self, PyObject * args )
 
 static PyObject *add_block( PyObject * self, PyObject * args )
 {
+    UNUSED(self);
     if (death) {
         Py_RETURN_NONE;
     }
@@ -604,6 +619,7 @@ static PyObject *add_block( PyObject * self, PyObject * args )
 
 static PyObject *del_block( PyObject * self, PyObject * args )
 {
+    UNUSED(self);
     if (death) {
         Py_RETURN_NONE;
     }
@@ -627,6 +643,8 @@ static PyObject *del_block( PyObject * self, PyObject * args )
 
 static PyObject *incomplete_block_list( PyObject * self, PyObject * args )
 {
+    UNUSED(self);
+    UNUSED(args);
     if (death) {
         Py_RETURN_NONE;
     }
@@ -649,6 +667,8 @@ static PyObject *incomplete_block_list( PyObject * self, PyObject * args )
 
 static PyObject *complete_block_list( PyObject * self, PyObject * args )
 {
+    UNUSED(self);
+    UNUSED(args);
     if (death) {
         Py_RETURN_NONE;
     }
@@ -672,6 +692,7 @@ static PyObject *complete_block_list( PyObject * self, PyObject * args )
 static PyObject *get_in_stats( PyObject * self, PyObject * value )
 {
 
+    UNUSED(self);
     if (death) {
         Py_RETURN_NONE;
     }
@@ -701,6 +722,7 @@ static PyObject *get_in_stats( PyObject * self, PyObject * value )
 static PyObject *get_out_stats( PyObject * self, PyObject * value )
 {
 
+    UNUSED(self);
     if (death) {
         Py_RETURN_NONE;
     }
@@ -726,6 +748,8 @@ static PyObject *get_out_stats( PyObject * self, PyObject * value )
 
 static PyObject *get_bw_stats( PyObject * self, PyObject * args )
 {
+    UNUSED(self);
+    UNUSED(args);
     if (death) {
         Py_RETURN_NONE;
     }
@@ -785,6 +809,8 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
 
 static PyObject *bora_get_bw_msg( PyObject * self, PyObject * args )
 {
+    UNUSED(self);
+    UNUSED(args);
     if (death) {
         Py_RETURN_NONE;
     }
@@ -812,6 +838,7 @@ static PyObject *bora_get_bw_msg( PyObject * self, PyObject * args )
 }
 static PyObject *bora_send_bw_msg( PyObject * self, PyObject * args )
 {
+    UNUSED(self);
     if (death) {
         Py_RETURN_NONE;
     }
@@ -900,6 +927,7 @@ static PyObject *bora_send_bw_msg( PyObject * self, PyObject * args )
 
 static PyObject *get_block_content( PyObject * self, PyObject * args )
 {
+    UNUSED(self);
     if (death) {
         Py_RETURN_NONE;
     }
@@ -930,6 +958,7 @@ static PyObject *get_block_content( PyObject * self, PyObject * args )
 
 static PyObject *bora_bws_set( PyObject * self, PyObject * args )
 {
+    UNUSED(self);
     if (death) {
         Py_RETURN_NONE;
     }
@@ -953,6 +982,7 @@ static PyObject *bora_bws_set( PyObject * self, PyObject * args )
 static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
 {
 
+    UNUSED(self);
     if (!sock) {
             PyErr_SetString(PyExc_AttributeError, "Sock not open");
             return NULL;
@@ -978,8 +1008,8 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
     int t;
 
 
-    struct sockaddr_in destaddr1 = {0};
-    struct sockaddr_in destaddr2 = {0};
+    struct sockaddr_in destaddr1 = (struct sockaddr_in){0};
+    struct sockaddr_in destaddr2 = (struct sockaddr_in){0};
 
     if (!PyArg_ParseTuple(args, "s#is#i", &dest1, &dest1_len, &port1_num, &dest2, &dest2_len, &port2_num)) {
                 PyErr_SetString(PyExc_AttributeError, "Wrong arguments");

@@ -27,6 +27,8 @@ int send_cookie (struct sockaddr_in * addr1, struct sockaddr_in * addr2) {
     memcpy(&ckData[1].to, addr2, sizeof(struct sockaddr_in));
     havecookie[0] = 1;
     havecookie[1] = 1;
+    puts("setting fields");
+    printf("field1: %i field2: %i", havecookie[0], havecookie[1]);
     sem_post(&ckFull);
     sem_post(&ckFull);
     return 1;

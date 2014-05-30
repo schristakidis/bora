@@ -93,7 +93,6 @@ struct timeval packet_send(int s) {
         //puts("\nCONSECUTIVE!\n");
         goto send_data_packet;
     } else {
-        free(lasthost);
         lasthost = NULL;
     }
   }
@@ -137,7 +136,6 @@ struct timeval packet_send(int s) {
   } else {
     if (!c) {
       if (z) {
-        free(lasthost);
         lasthost = NULL;
       } else if (d.data[0] & BLK_BLOCK) {
         lasthost = lhalloc;

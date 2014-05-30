@@ -3,6 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include "messages.h"
 #include "packet_sender.h"
 #include "netencoder.h"
@@ -74,7 +78,9 @@ int cookie_received (AckStore * ack) {
         check_answers();
         return 1;
     }
-
+    printf("\nACK: %s:%i ", inet_ntoa(ack->addr.sin_addr), ack->addr.sin_port);
+    printf("C1: %s:%i ", inet_ntoa(ckData[0].to.sin_addr), ckData[0].to.sin_port);
+    printf("C2: %s:%i ", inet_ntoa(ckData[0].to.sin_addr), ckData[0].to.sin_port);
     puts("COOKIES INCONSISTENCIES!");
     return 0;
 }

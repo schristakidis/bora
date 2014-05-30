@@ -78,9 +78,9 @@ int cookie_received (AckStore * ack) {
         check_answers();
         return 1;
     }
-    printf("\nACK: %s:%i ", inet_ntoa(ack->addr.sin_addr), ack->addr.sin_port);
-    printf("C1: %s:%i ", inet_ntoa(ckData[0].to.sin_addr), ckData[0].to.sin_port);
-    printf("C2: %s:%i ", inet_ntoa(ckData[0].to.sin_addr), ckData[0].to.sin_port);
+    printf("\nACK: %s:%i ", inet_ntoa(((struct sockaddr_in *)ack->addr)->sin_addr), ((struct sockaddr_in *)ack->addr)->sin_port);
+    printf("C1: %s:%i ", inet_ntoa((ckData[0].to).sin_addr), (ckData[0].to).sin_port);
+    printf("C2: %s:%i ", inet_ntoa(ckData[1].to.sin_addr), ckData[1].to.sin_port);
     puts("COOKIES INCONSISTENCIES!");
     return 0;
 }

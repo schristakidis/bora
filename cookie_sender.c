@@ -43,7 +43,7 @@ int send_cookie (struct sockaddr_in * addr1, struct sockaddr_in * addr2) {
 
 void check_answers (void)
 {
-    if (gotcookie[1]==0 && gotcookie[0] == 0) {
+    if (gotcookie[1]==1 && gotcookie[0] == 1) {
         memcpy(&ckAck, &ckResult, sizeof(CookieAck[2]));
         sem_post(&ckEmpty);
     }

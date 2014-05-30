@@ -21,7 +21,6 @@ typedef struct CookieAck {
 
 CookieAck ckResult[2];
 
-pthread_mutex_t ckLock;
 sem_t ckFull;
 sem_t ckEmpty;
 

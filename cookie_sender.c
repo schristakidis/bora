@@ -18,9 +18,11 @@ static SendData bogusData;
 static SendData ckData[2];
 static CookieAck ckAck[2];
 static int havecookie[2];
+static pthread_mutex_t ckLock = PTHREAD_MUTEX_INITIALIZER;
 
 int send_cookie (struct sockaddr_in * addr1, struct sockaddr_in * addr2) {
     sem_wait(&ckEmpty);
+    pthread_mutex_lock(&ckLock);
     memcpy(&ckData[0], &bogusData, sizeof(SendData));
     memcpy(&ckData[1], &bogusData, sizeof(SendData));
     memcpy(&ckData[0].to, addr1, sizeof(struct sockaddr_in));
@@ -28,9 +30,10 @@ int send_cookie (struct sockaddr_in * addr1, struct sockaddr_in * addr2) {
     havecookie[0] = 1;
     havecookie[1] = 1;
     puts("setting fields");
-    printf("field1: %i field2: %i", havecookie[0], havecookie[1]);
+    printf("field1: %i field2: %i\n", havecookie[0], havecookie[1]);
     sem_post(&ckFull);
     sem_post(&ckFull);
+    pthread_mutex_unlock(&ckLock);
     return 1;
 }
 
@@ -43,22 +46,27 @@ void check_answers (void)
 }
 
 SendData * get_cookie_data (void) {
+    pthread_mutex_lock(&ckLock);
     puts("GET COOKIE DATA\n");
-    printf("field1: %i field2: %i", havecookie[0], havecookie[1]);
+    printf("field1: %i field2: %i\n", havecookie[0], havecookie[1]);
     if (havecookie[0] == 1) {
         havecookie[0] = 0;
+        pthread_mutex_unlock(&ckLock);
         return &ckData[0];
     } else if (havecookie[1] == 1) {
         havecookie[1] = 0;
+        pthread_mutex_unlock(&ckLock);
         return &ckData[1];
     }
     puts("AAAAAAAAAAAAAAAAAAAAA");
     puts("COOKIES INCONSISTENCIES!");
+    pthread_mutex_unlock(&ckLock);
     exit(0);
     return NULL;
 }
 
 int cookie_received (AckStore * ack) {
+    pthread_mutex_lock(&ckLock);
 
     if (havecookie[0] == 1 && memcmp(ack->addr, &ckData[0].to, sizeof(struct sockaddr_in)) == 0) {
         havecookie[0] = 0;
@@ -69,6 +77,7 @@ int cookie_received (AckStore * ack) {
         ckAck[0].seq = ack->seq;
         ckAck[0].sleeptime = ack->sleeptime;
         check_answers();
+        pthread_mutex_unlock(&ckLock);
         return 1;
     }
 
@@ -81,8 +90,10 @@ int cookie_received (AckStore * ack) {
         ckAck[1].seq = ack->seq;
         ckAck[1].sleeptime = ack->sleeptime;
         check_answers();
+        pthread_mutex_unlock(&ckLock);
         return 1;
     }
+    pthread_mutex_unlock(&ckLock);
     printf("\nACK: %s:%i ", inet_ntoa(((struct sockaddr_in *)ack->addr)->sin_addr), ((struct sockaddr_in *)ack->addr)->sin_port);
     printf("C1: %s:%i ", inet_ntoa((ckData[0].to).sin_addr), (ckData[0].to).sin_port);
     printf("C2: %s:%i ", inet_ntoa(ckData[1].to.sin_addr), ckData[1].to.sin_port);
@@ -91,8 +102,10 @@ int cookie_received (AckStore * ack) {
 }
 
 void cookie_cleanup (void) {
+    pthread_mutex_lock(&ckLock);
     havecookie[0] = 0;
     havecookie[1] = 0;
+    pthread_mutex_unlock(&ckLock);
     sem_post(&ckEmpty);
 }
 

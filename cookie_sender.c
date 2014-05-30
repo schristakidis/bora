@@ -102,6 +102,7 @@ int cookie_received (AckStore * ack) {
 }
 
 void cookie_cleanup (void) {
+    puts("COOKIE CLEANUP!");
     pthread_mutex_lock(&ckLock);
     havecookie[0] = 0;
     havecookie[1] = 0;

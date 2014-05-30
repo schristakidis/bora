@@ -17,7 +17,6 @@
 
 static SendData bogusData;
 static SendData ckData[2];
-static CookieAck ckAck[2];
 static int havecookie[2];
 static int gotcookie[2];
 //static pthread_mutex_t ckLock = PTHREAD_MUTEX_INITIALIZER;
@@ -44,7 +43,8 @@ int send_cookie (struct sockaddr_in * addr1, struct sockaddr_in * addr2) {
 void check_answers (void)
 {
     if (gotcookie[1]==1 && gotcookie[0] == 1) {
-        memcpy(&ckAck, &ckResult, sizeof(CookieAck[2]));
+        //memcpy(&ckAck[0], &ckResult[0], sizeof(CookieAck));
+        //memcpy(&ckAck[1], &ckResult[1], sizeof(CookieAck));
         sem_post(&ckEmpty);
     }
 }
@@ -74,12 +74,13 @@ int cookie_received (AckStore * ack) {
 
     if (gotcookie[0] == 0 && memcmp(ack->addr, &ckData[0].to, sizeof(struct sockaddr_in)) == 0) {
         gotcookie[0] = 1;
-        memcpy(&ckAck[0].addr, ack->addr, sizeof(struct sockaddr_in));
-        memcpy(&ckAck[0].sent, &ack->sent, sizeof(struct timeval));
-        memcpy(&ckAck[0].RTT, &ack->RTT, sizeof(struct timeval));
-        memcpy(&ckAck[0].STT, &ack->STT, sizeof(struct timeval));
-        ckAck[0].seq = ack->seq;
-        ckAck[0].sleeptime = ack->sleeptime;
+
+        memcpy(&ckResult[0].addr, ack->addr, sizeof(struct sockaddr_in));
+        memcpy(&ckResult[0].sent, &ack->sent, sizeof(struct timeval));
+        memcpy(&ckResult[0].RTT, &ack->RTT, sizeof(struct timeval));
+        memcpy(&ckResult[0].STT, &ack->STT, sizeof(struct timeval));
+        ckResult[0].seq = ack->seq;
+        ckResult[0].sleeptime = ack->sleeptime;
         check_answers();
         //pthread_mutex_unlock(&ckLock);
         return 1;
@@ -87,12 +88,12 @@ int cookie_received (AckStore * ack) {
 
     if (gotcookie[1] == 0 && memcmp(ack->addr, &ckData[1].to, sizeof(struct sockaddr_in)) == 0) {
         gotcookie[1] = 1;
-        memcpy(&ckAck[1].addr, ack->addr, sizeof(struct sockaddr_in));
-        memcpy(&ckAck[1].sent, &ack->sent, sizeof(struct timeval));
-        memcpy(&ckAck[1].RTT, &ack->RTT, sizeof(struct timeval));
-        memcpy(&ckAck[1].STT, &ack->STT, sizeof(struct timeval));
-        ckAck[1].seq = ack->seq;
-        ckAck[1].sleeptime = ack->sleeptime;
+        memcpy(&ckResult[1].addr, ack->addr, sizeof(struct sockaddr_in));
+        memcpy(&ckResult[1].sent, &ack->sent, sizeof(struct timeval));
+        memcpy(&ckResult[1].RTT, &ack->RTT, sizeof(struct timeval));
+        memcpy(&ckResult[1].STT, &ack->STT, sizeof(struct timeval));
+        ckResult[1].seq = ack->seq;
+        ckResult[1].sleeptime = ack->sleeptime;
         check_answers();
         //pthread_mutex_unlock(&ckLock);
         return 1;

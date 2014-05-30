@@ -30,8 +30,8 @@ int send_cookie (struct sockaddr_in * addr1, struct sockaddr_in * addr2) {
     memcpy(&ckData[1].to, addr2, sizeof(struct sockaddr_in));
     havecookie[0] = 1;
     havecookie[1] = 1;
-    puts("setting fields");
-    printf("field1: %i field2: %i\n", havecookie[0], havecookie[1]);
+    //puts("setting fields");
+    //printf("field1: %i field2: %i\n", havecookie[0], havecookie[1]);
     sem_post(&ckFull);
     sem_post(&ckFull);
     //pthread_mutex_unlock(&ckLock);
@@ -48,8 +48,8 @@ void check_answers (void)
 
 SendData * get_cookie_data (void) {
     //pthread_mutex_lock(&ckLock);
-    puts("GET COOKIE DATA\n");
-    printf("field1: %i field2: %i\n", havecookie[0], havecookie[1]);
+    //puts("GET COOKIE DATA\n");
+    //printf("field1: %i field2: %i\n", havecookie[0], havecookie[1]);
     if (havecookie[0] == 1) {
         havecookie[0] = 0;
         //pthread_mutex_unlock(&ckLock);
@@ -59,8 +59,8 @@ SendData * get_cookie_data (void) {
         //pthread_mutex_unlock(&ckLock);
         return &ckData[1];
     }
-    puts("AAAAAAAAAAAAAAAAAAAAA");
-    puts("COOKIES INCONSISTENCIES!");
+    //puts("AAAAAAAAAAAAAAAAAAAAA");
+    puts("NO COOKIES TO SEND!");
     //pthread_mutex_unlock(&ckLock);
     exit(0);
     return NULL;
@@ -95,15 +95,15 @@ int cookie_received (AckStore * ack) {
         return 1;
     }
     //pthread_mutex_unlock(&ckLock);
-    printf("\nACK: %s:%i ", inet_ntoa(((struct sockaddr_in *)ack->addr)->sin_addr), ((struct sockaddr_in *)ack->addr)->sin_port);
-    printf("C1: %s:%i ", inet_ntoa((ckData[0].to).sin_addr), (ckData[0].to).sin_port);
-    printf("C2: %s:%i ", inet_ntoa(ckData[1].to.sin_addr), ckData[1].to.sin_port);
-    puts("COOKIES INCONSISTENCIES!");
+    //printf("\nACK: %s:%i ", inet_ntoa(((struct sockaddr_in *)ack->addr)->sin_addr), ((struct sockaddr_in *)ack->addr)->sin_port);
+    //printf("C1: %s:%i ", inet_ntoa((ckData[0].to).sin_addr), (ckData[0].to).sin_port);
+    //printf("C2: %s:%i ", inet_ntoa(ckData[1].to.sin_addr), ckData[1].to.sin_port);
+    puts("BAD COOKIE RECEIVED!");
     return 0;
 }
 
 void cookie_cleanup (void) {
-    puts("COOKIE CLEANUP!");
+    puts("COOKIE TIMEOUT!");
     //pthread_mutex_lock(&ckLock);
     havecookie[0] = 0;
     havecookie[1] = 0;

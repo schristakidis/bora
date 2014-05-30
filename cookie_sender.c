@@ -41,6 +41,8 @@ void check_answers (void)
 }
 
 SendData * get_cookie_data (void) {
+    puts("GET COOKIE DATA\n");
+    printf("field1: %i field2: %i", havecookie[0], havecookie[1]);
     if (havecookie[0] == 1) {
         havecookie[0] = 0;
         return &ckData[0];
@@ -48,6 +50,7 @@ SendData * get_cookie_data (void) {
         havecookie[1] = 0;
         return &ckData[1];
     }
+    puts("AAAAAAAAAAAAAAAAAAAAA");
     puts("COOKIES INCONSISTENCIES!");
     exit(0);
     return NULL;

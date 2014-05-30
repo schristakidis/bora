@@ -85,7 +85,7 @@ int cookie_received (AckStore * ack) {
         return 1;
     }
 
-    if (gotcookie[1] == 1 && memcmp(ack->addr, &ckData[1].to, sizeof(struct sockaddr_in)) == 0) {
+    if (gotcookie[1] == 0 && memcmp(ack->addr, &ckData[1].to, sizeof(struct sockaddr_in)) == 0) {
         gotcookie[1] = 1;
         memcpy(&ckAck[1].addr, ack->addr, sizeof(struct sockaddr_in));
         memcpy(&ckAck[1].sent, &ack->sent, sizeof(struct timeval));

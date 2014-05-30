@@ -969,6 +969,7 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
     int dest2_len;
     int port2_num;
     struct timespec ckTimeout;
+    struct timeval timenow;
 
     int sem_res;
     int i;
@@ -1016,11 +1017,9 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
     res = PyList_New(0);
 
     send_cookie(&destaddr1, &destaddr2);
-    if (clock_gettime(CLOCK_REALTIME, &ckTimeout) == -1) {
-        puts("clock_gettime");
-        exit(0);
-    }
-    ckTimeout.tv_sec += 1;
+    gettimeofday(&timenow, NULL);
+    ckTimeout.tv_sec = 1+timenow.tv_sec;
+    ckTimeout.tv_nsec = 1000*timenow.tv_usec;
     //puts("SEND COOKIE UNLOCKING\n");
     Py_BEGIN_ALLOW_THREADS
     sem_res = sem_timedwait(&ckEmpty, &ckTimeout);

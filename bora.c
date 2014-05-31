@@ -1000,6 +1000,7 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
     int port2_num;
     struct timespec ckTimeout;
     struct timeval timenow;
+    char dest[INET_ADDRSTRLEN];
 
     int sem_res;
     int i;
@@ -1059,13 +1060,10 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
     if (sem_res == 0) {
         for (i=0; i<2; i++) {
             dict_ck = PyDict_New();
-            if (i==1) {
-            PyDict_SetItemString(dict_ck, "host", Py_BuildValue("s#", dest1, dest1_len));
-            PyDict_SetItemString(dict_ck, "port", Py_BuildValue("i", port1_num));
-            } else {
-            PyDict_SetItemString(dict_ck, "host", Py_BuildValue("s#", dest2, dest2_len));
-            PyDict_SetItemString(dict_ck, "port", Py_BuildValue("i", port2_num));
-            }
+
+            inet_ntop(AF_INET, &ckResult[i].addr.sin_addr, dest, INET_ADDRSTRLEN);
+            PyDict_SetItemString(dict_ck, "host", Py_BuildValue("s#", dest, INET_ADDRSTRLEN));
+            PyDict_SetItemString(dict_ck, "port", Py_BuildValue("i", ntohs(ckResult[i].addr.sin_port)));
             PyDict_SetItemString(dict_ck, "sent", Py_BuildValue("d", (double)ckResult[i].sent.tv_sec + (double)ckResult[i].sent.tv_usec/1000000.0));
             PyDict_SetItemString(dict_ck, "RTT", Py_BuildValue("l", ckResult[i].RTT.tv_sec * 1000000L + ckResult[i].RTT.tv_usec));
             PyDict_SetItemString(dict_ck, "STT", Py_BuildValue("l", ckResult[i].STT.tv_sec * 1000000L + ckResult[i].STT.tv_usec));

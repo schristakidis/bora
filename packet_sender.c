@@ -16,6 +16,7 @@
 
 #include <semaphore.h>
 
+#include "bora_threads.h"
 #include "packet_sender.h"
 #include "messages.h"
 #include "netencoder.h"
@@ -189,7 +190,10 @@ struct timeval packet_send(int s) {
 void * send_packet(void * sock) {
   int s = *(int*) sock;
   free(sock);
-  for(;;) {
+  for (;;) {
+    if (kill_bora_threads) {
+        break;
+    }
     //puts("SEND_PACKET pre sleep\n");
     usleep(sleeptime);
     //puts("SEND_PACKET post sleep\n");
@@ -211,6 +215,9 @@ void * send_packet(void * sock) {
 void * send_pull(void* args) {
   assert(args==NULL);
   for (;;) {
+    if (kill_bora_threads) {
+        break;
+    }
     pthread_mutex_lock(&pbLock);
     pthread_cond_wait(&produceBlock, &pbLock);
     pthread_mutex_unlock(&pbLock);
@@ -222,6 +229,7 @@ void * send_pull(void* args) {
     pthread_mutex_unlock(&bpLock);
   }
   printf("SEND puller going out\n");
+  return 0;
 }
 
 //PUBLIC FUNCTION
@@ -319,4 +327,20 @@ uint16_t get_nat_port(void) {
 uint16_t set_nat_port(uint16_t port_n) {
     natPort = htons(port_n);
     return natPort;
+}
+
+void sender_end_threads(void) {
+    sem_post(&sFull);
+    sem_post(&qEmpty);
+    sem_destroy(&sFull);
+    sem_destroy(&qEmpty);
+    pthread_join(sender_t, NULL);
+    pthread_cond_signal(&blockProduced);
+    pthread_cond_signal(&produceBlock);
+    pthread_join(puller_t, NULL);
+    pthread_mutex_destroy(&stat_lock_s);
+    pthread_mutex_destroy(&bpLock);
+    pthread_mutex_destroy(&bwLock);
+    pthread_cond_destroy(&blockProduced);
+    free(lhalloc);
 }

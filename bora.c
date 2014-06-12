@@ -34,6 +34,8 @@
 
 #define UNUSED(x) (void)(x)
 
+#include "bora_threads.h"
+
 static int sock = 0;
 
 static int death = 0;
@@ -474,16 +476,24 @@ static PyObject* die(PyObject* self, PyObject * value )
       return NULL;
     }
     death = 1;
+    kill_bora_threads = 1;
     set_nat_port(0);
-    if (bws_running) { sem_post(&s_bws_hasdata); bws_running = 0;}
+    if (bws_running) { sem_post(&s_bws_hasdata); bws_running = 0; bws_end_threads();}
     sem_post(&s_bpuller_full);
     sem_post(&s_biter_full);
     cookie_cleanup();
+    sender_end_threads();
+    receiver_end_threads();
+    shutdown(sock, SHUT_RDWR);
     if (close(sock)==-1) {
       perror("Could not close socket");
       Py_RETURN_NONE;
     }
     sock = 0;
+    kill_bora_threads = 0;
+
+    //TODO free blockcache and other allocated memory
+
     Py_RETURN_TRUE;
 }
 
@@ -1194,6 +1204,8 @@ initbora(void)
   #ifdef __WIN32__
   init_wsa();
   #endif
+
+  kill_bora_threads = 0;
 
   m = Py_InitModule("bora", BoraMethods);
 

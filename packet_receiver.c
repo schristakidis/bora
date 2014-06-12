@@ -11,6 +11,7 @@
 #include <string.h>
 #include <assert.h>
 
+#include "bora_threads.h"
 #include "packet_receiver.h"
 #include "packet_sender.h"
 #include "messages.h"
@@ -41,6 +42,9 @@ void * packet_receiver(void * socket) {
   uint8_t c = 0;
   int l;
   for (;;) {
+    if (kill_bora_threads) {
+        break;
+    }
     sem_wait(&bEmpty);
     buffer[c].fromlen = sizeof(struct sockaddr_in);
     l = recvfrom(s, &buffer[c].buf, 1500, 0, (struct sockaddr*)&buffer[c].from, &buffer[c].fromlen);
@@ -64,6 +68,9 @@ void * packet_processor(void*args) {
   uint16_t port_n;
   AckCookie cookie;
   for (;;) {
+    if (kill_bora_threads) {
+        break;
+    }
     sem_wait(&bFull);
     pthread_mutex_lock(&stat_lock_r);
     if (buffer[c].buflen>3) {
@@ -225,4 +232,14 @@ void init_receiver (int s) {
          printf("ERROR; return code from pthread_create() is %d\n", t2);
          exit(EXIT_FAILURE);
       }
+}
+
+void receiver_end_threads(void) {
+    sem_post(&bFull);
+    sem_post(&bEmpty);
+    sem_destroy(&bFull);
+    sem_destroy(&bEmpty);
+    pthread_mutex_destroy(&stat_lock_r);
+    pthread_join(processor_t, NULL);
+    pthread_join(receiver_t, NULL);
 }

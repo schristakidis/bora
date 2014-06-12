@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include "bora_threads.h"
 #include "stats_bridge.h"
 #include "packet_sender.h"
 #include "ack_received.h"
@@ -36,6 +37,9 @@ void init_bws(int interval) {
 void * bws_thread (void * args) {
   assert(args==NULL);
   for (;;) {
+    if (kill_bora_threads) {
+        break;
+    }
     //puts("BWS THREAD PRE SLEEP\n");
     usleep(bws_timer);
     //puts("BWS THREAD POST SLEEP\n");
@@ -62,4 +66,10 @@ void bws_return_value (int bw) {
 
 void set_bws_interval(int interval) {
     bws_timer = interval;
+}
+
+void bws_end_threads(void) {
+  sem_post(&s_bws_hasdata);
+  sem_post(&s_bws_processed);
+  pthread_join(bws_pusher, NULL);
 }

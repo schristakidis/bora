@@ -35,5 +35,6 @@ typedef struct IncomingData {
 } IncomingData;
 
 void init_receiver(int s);
+void receiver_end_threads(void);
 
 #endif

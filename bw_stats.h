@@ -16,5 +16,6 @@ void init_bws(int interval);
 void bws_return_value (int bw);
 void set_bws_interval(int interval);
 
+void bws_end_threads(void);
 
 #endif

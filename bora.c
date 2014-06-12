@@ -737,6 +737,8 @@ static PyObject *get_out_stats( PyObject * self, PyObject * value )
     PyDict_SetItemString(ret, "O_PKG_COUNTER", Py_BuildValue("i", stats_s[O_PKG_COUNTER]));
     PyDict_SetItemString(ret, "O_ACK_COUNTER", Py_BuildValue("i", stats_s[O_ACK_COUNTER]));
     PyDict_SetItemString(ret, "O_ACK_DATA_COUNTER", Py_BuildValue("i", stats_s[O_ACK_DATA_COUNTER]));
+    PyDict_SetItemString(ret, "O_RETR_COUNTER", Py_BuildValue("i", stats_s[O_RETR_COUNTER]));
+    PyDict_SetItemString(ret, "O_RETR_DATA_COUNTER", Py_BuildValue("i", stats_s[O_RETR_DATA_COUNTER]));
     if (rst) {
       reset_in_counters();
     }

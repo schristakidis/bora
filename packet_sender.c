@@ -23,8 +23,9 @@
 #include "bpuller_bridge.h"
 #include "cookie_sender.h"
 
-#define N_SEND 2000
 #define S_TRESHOLD 3
+#define N_SEND 2000
+#define N_RETR 2000
 #define N_PRIO 2000
 
 
@@ -45,11 +46,16 @@ static pthread_mutex_t send_lock = PTHREAD_MUTEX_INITIALIZER;
 static int c_send = 0;
 static int f_send = 0;
 
+static SendData retr_buf[N_RETR];
+static pthread_mutex_t retr_lock = PTHREAD_MUTEX_INITIALIZER;
+static int c_retr = 0;
+static int f_retr = 0;
+
 static SendData prio_buf[N_PRIO];
 static pthread_mutex_t prio_lock = PTHREAD_MUTEX_INITIALIZER;
-
 static int c_prio = 0;
 static int f_prio = 0;
+
 static uint64_t bandwidth = 1000000;
 static uint64_t sleeptime = 1500;
 
@@ -58,6 +64,8 @@ sem_t qEmpty;
 
 static struct sockaddr_in* lasthost = NULL;
 static struct sockaddr_in* lhalloc;
+
+static uint16_t natPort = 0;
 
 
 struct timeval packet_send(int s) {
@@ -111,6 +119,17 @@ struct timeval packet_send(int s) {
   }
   pthread_mutex_unlock(&prio_lock);
 
+  if (!c) {
+    pthread_mutex_lock(&retr_lock);
+    if (f_retr) {
+      d = retr_buf[(N_RETR+c_retr-f_retr)%N_RETR];
+      f_retr--;
+      c = 2;
+      //puts("SEND RETR\n");
+    }
+    pthread_mutex_unlock(&retr_lock);
+  }
+
   send_data_packet:
   if (!c) {
     pthread_mutex_lock(&send_lock);
@@ -149,9 +168,12 @@ struct timeval packet_send(int s) {
   pthread_mutex_lock(&stat_lock_s);
   t_idle = idleTime;
   timeradd(&ret, &t_idle, &idleTime);
-  if (c) {
+  if (c==1) {
     stats_s[O_ACK_COUNTER]++;
     stats_s[O_ACK_DATA_COUNTER] += l;
+  } else if (c==2) {
+    stats_s[O_RETR_COUNTER]++;
+    stats_s[O_RETR_DATA_COUNTER] += l;
   }
   stats_s[O_PKG_COUNTER]++;
   stats_s[O_DATA_COUNTER] += l;
@@ -218,6 +240,19 @@ void send_data(SendData d) {
         pthread_mutex_unlock(&prio_lock);
         return;
     }
+  } else if (d.data[0] & BLOCK_RETRANSMISSION) {
+    pthread_mutex_lock(&retr_lock);
+    if (f_retr<N_RETR) {
+        retr_buf[c_retr] = d;
+        c_retr = (c_retr+1)%N_RETR;
+        f_retr++;
+        pthread_mutex_unlock(&retr_lock);
+    } else {
+        sem_post(&qEmpty);
+        //puts("RETR QUEUE FULL\n");
+        pthread_mutex_unlock(&retr_lock);
+        return;
+    }
   } else {
     pthread_mutex_lock(&send_lock);
     if (f_send<N_SEND) {
@@ -254,7 +289,7 @@ void init_sender(int s) {
   pthread_mutex_init(&bwLock, NULL);
   pthread_cond_init(&blockProduced, NULL);
   sem_init(&sFull, 0, 0);
-  sem_init(&qEmpty, 0, N_SEND+N_PRIO);
+  sem_init(&qEmpty, 0, N_SEND*3);
   t1 = pthread_create(&puller_t, NULL, send_pull, NULL);
   if (t1) {
     printf("ERROR; return code from pthread_create() is %d\n", t1);
@@ -273,4 +308,11 @@ uint64_t get_idle(void) {
   return ret;
 }
 
+uint16_t get_nat_port() {
+    return natPort;
+}
 
+uint16_t set_nat_port(uint16_t port_n) {
+    natPort = port_n;
+    return natPort;
+}

@@ -21,8 +21,8 @@ typedef struct __attribute__((__packed__)) {
   unsigned char flags;
   uint16_t streamid;
   uint32_t blockid;
-  uint16_t  fragmentid;
-  uint16_t  fragments;
+  uint16_t fragmentid;
+  uint16_t fragments;
   uint16_t length;
 } FragmentHeader;
 
@@ -70,7 +70,7 @@ int validate_block(unsigned char * blob, size_t l) {
   if (l>=sizeof(FragmentHeader)) {
     i = htons(((FragmentHeader*)blob)->length);
     f = ((FragmentHeader*)blob)->flags;
-    if (l==sizeof(FragmentHeader)+i && ((f&MASK_BLOCK_ACK&BLOCK_MASK_CONSECUTIVE)^BLK_EMPTY) == 0) {
+    if (l==sizeof(FragmentHeader)+i && ((f&MASK_BLOCK_ACK&BLOCK_MASK_CONSECUTIVE&BLOCK_MASK_RETRANSMISSION)^BLK_EMPTY) == 0) {
       return 1;
     }
   }

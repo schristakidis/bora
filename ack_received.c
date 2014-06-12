@@ -127,7 +127,13 @@ int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, stru
 
     peer->total_acked += 1;
     peer->last_acked += 1;
+
+#ifdef BORA_RETRANSMISSION
     int errors = remove_ooo_nacks(ack_s);
+#else
+    int errors = resend_ooo_nacks(ack_s);
+#endif // BORA_RETRANSMISSION
+
     if (errors>0) {
       peer->errSTT = prevSTT;
       peer->errRTT = prevRTT;

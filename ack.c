@@ -14,6 +14,7 @@
 #endif
 
 #include "ack.h"
+#include "messages.h"
 #include "netencoder.h"
 
 
@@ -116,6 +117,32 @@ int remove_ooo_nacks(Ack*ack) {
       if (timercmp(&cur->sendtime, &ack->sendtime, <)) {
         ret++;
         SLIST_REMOVE(&peer->nacks, cur, Ack, entries);
+        free(cur);
+      }
+    }
+  }
+  pthread_mutex_unlock(&nack_lock);
+  return ret;
+}
+
+int resend_ooo_nacks(Ack*ack) {
+  int ret = 0;
+  Nack_peer * peer;
+  Ack * cur;
+  Ack *tmp_cur;
+  pthread_mutex_lock(&nack_lock);
+  peer = nack_find_by_host(&ack->d.to);
+  if (peer != NULL) {
+    SLIST_FOREACH_SAFE(cur, &peer->nacks, entries, tmp_cur) {
+      if (timercmp(&cur->sendtime, &ack->sendtime, <)) {
+        ret++;
+        cur->d.data[0] &= BLOCK_MASK_CONSECUTIVE;
+        if (cur->d.data[0]&(BLK_BLOCK_ACK)) {
+            cur->d.data[0] &= BLOCK_RETRANSMISSION;
+            send_data(cur->d);
+        }
+        SLIST_REMOVE(&peer->nacks, cur, Ack, entries);
+        free(cur);
       }
     }
   }

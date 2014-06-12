@@ -17,6 +17,7 @@
 
 typedef struct AckReceived {
   unsigned char flags;
+  uint16_t port_n;
   uint16_t seq;
   int32_t sec;
   int32_t usec;
@@ -25,6 +26,7 @@ typedef struct AckReceived {
 typedef struct AckStore {
   //int has_data;
   struct sockaddr_in * addr;
+  uint16_t port_n;
   struct timeval sent;
   struct timeval RTT;
   struct timeval STT;

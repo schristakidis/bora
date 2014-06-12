@@ -150,6 +150,10 @@ struct timeval packet_send(int s) {
   if (z) {
     d.data[0]=d.data[0]|BLOCK_CONSECUTIVE;
   }
+
+  /*append port*/
+  memcpy(d.data+d.length, &natPort, sizeof(natPort));
+
   if (sendto(s, d.data, d.length, 0, (struct sockaddr*) &d.to, sizeof(d.to)) == -1) {
     perror("SEND FAILED");
   } else {
@@ -308,11 +312,11 @@ uint64_t get_idle(void) {
   return ret;
 }
 
-uint16_t get_nat_port() {
-    return natPort;
+uint16_t get_nat_port(void) {
+    return ntohs(natPort);
 }
 
 uint16_t set_nat_port(uint16_t port_n) {
-    natPort = port_n;
+    natPort = htons(port_n);
     return natPort;
 }

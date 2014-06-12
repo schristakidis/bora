@@ -57,8 +57,6 @@ void fragment_received(RecvFragment fragment) {
 
         SLIST_INSERT_HEAD(&host_bw->bandwidth, band, entries);
     }
-    //printf("lastfragment.streamid %i %i fragment.streamid\nlastfragment.blockid %i %i fragment.blockid\nlastfragment.fragmentid %i %i fragment.fragmentid\n",
-    //host_bw->lastfragment.streamid, fragment.streamid, host_bw->lastfragment.blockid, fragment.blockid, host_bw->lastfragment.fragmentid +1, fragment.fragmentid);
 
     host_bw->lastfragment = fragment;
   }

@@ -28,7 +28,7 @@ void send_data(SendData d);
 void init_sender(int s);
 void set_bandwidth(int bw);
 uint64_t get_idle(void);
-uint16_t get_nat_port();
+uint16_t get_nat_port(void);
 uint16_t set_nat_port(uint16_t port_n);
 
 #endif

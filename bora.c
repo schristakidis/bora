@@ -474,6 +474,7 @@ static PyObject* die(PyObject* self, PyObject * value )
       return NULL;
     }
     death = 1;
+    set_nat_port(0);
     if (bws_running) { sem_post(&s_bws_hasdata); bws_running = 0;}
     sem_post(&s_bpuller_full);
     sem_post(&s_biter_full);
@@ -1083,6 +1084,33 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
 
 }
 
+static PyObject *bora_set_nat_port( PyObject * self, PyObject * args )
+{
+
+    int port_num;
+
+    UNUSED(self);
+    if (!sock) {
+            PyErr_SetString(PyExc_AttributeError, "Sock not open");
+            return NULL;
+    }
+
+    if (!PyArg_ParseTuple(args, "i", &port_num)) {
+                PyErr_SetString(PyExc_AttributeError, "Wrong arguments");
+                return NULL;
+    }
+
+    if (port_num<0 || port_num>65535) {
+                PyErr_SetString(PyExc_AttributeError, "Port out of range");
+                return NULL;
+    }
+
+    set_nat_port(port_num);
+
+    Py_RETURN_NONE;
+
+}
+
 
 // THIS IS METHOD DOCS
 static char listen_docs[] =
@@ -1121,6 +1149,8 @@ static char get_bw_msg_docs[] =
     "get_bw_msg( ): Get bandwidth estimation messages received from the peers\n";
 static char send_cookie_docs[] =
     "send_cookie( address1, port1, address2, port2 ): Send cookie packets to two peers\n";
+static char set_nat_port_docs[] =
+    "set_nat_port( port ): Set the NAT port open for receiving\n";
 
 
 
@@ -1143,6 +1173,7 @@ static PyMethodDef BoraMethods[] = {
     {"send_bw_msg", bora_send_bw_msg, METH_VARARGS, send_bw_msg_docs},
     {"get_bw_msg", bora_get_bw_msg, METH_NOARGS, get_bw_msg_docs},
     {"send_cookie", bora_send_cookie, METH_VARARGS, send_cookie_docs},
+    {"set_nat_port", bora_set_nat_port, METH_VARARGS, set_nat_port_docs},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

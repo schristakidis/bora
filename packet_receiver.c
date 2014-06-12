@@ -61,11 +61,19 @@ void * packet_receiver(void * socket) {
 void * packet_processor(void*args) {
   assert(args==NULL);
   uint8_t c = 0;
+  uint16_t port_n;
   AckCookie cookie;
   for (;;) {
     sem_wait(&bFull);
     pthread_mutex_lock(&stat_lock_r);
-    if (buffer[c].buflen>1) {
+    if (buffer[c].buflen>3) {
+      if (buffer[c].buf[0] == BLK_EMPTY) {
+        // TODO //
+      } else {
+        if ( (uint16_t) *(buffer[c].buf+buffer[c].buflen-sizeof(port_n)) != 0 ) {
+          buffer[c].from.sin_port = (uint16_t) *(buffer[c].buf+buffer[c].buflen-sizeof(port_n));
+        }
+      }
       // IF ACK IS REQUIRED SEND ACK IMMEDIATELY
       if (buffer[c].buf[0] & NEED_ACK) {
         if (validate_block(&buffer[c].buf[0], buffer[c].buflen-ACKSIZE)) {

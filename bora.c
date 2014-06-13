@@ -31,6 +31,7 @@
 #include "bw_stats.h"
 #include "bw_msgs.h"
 #include "cookie_sender.h"
+#include "messages.h"
 
 #define UNUSED(x) (void)(x)
 
@@ -182,6 +183,8 @@ PyObject* bora_BIter_iternext(PyObject *self)
   //bora_BIter *p = (bora_BIter *)self;
   if (!death) {
     int s, b;
+    IncomingData d;
+    PyObject *tmp;
 
     //(p->i)++;
     //puts("BITER LOCKING\n");
@@ -189,13 +192,27 @@ PyObject* bora_BIter_iternext(PyObject *self)
     sem_wait(&s_biter_full);
     s = b_biter_s[c];
     b = b_biter_b[c];
+    if (s==-1 && b==-1) {
+        memcpy(&d, &b_biter_d[c], sizeof(IncomingData));
+    }
     c = (c+1)%N_BITER;
     sem_post(&s_biter_empty);
     Py_END_ALLOW_THREADS
     //puts("BITER UNLOCKING\n");
     //puts("GOTTABLOCK");
     if (!death) {
-      PyObject *tmp = Py_BuildValue("ii", s, b);
+      if (s==-1 && b==-1) {
+        PyObject *incomingDict = PyDict_New();
+        char host_ip[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &d.from, host_ip, INET_ADDRSTRLEN);
+        PyDict_SetItemString(incomingDict, "host", Py_BuildValue("s", host_ip));
+        PyDict_SetItemString(incomingDict, "port", Py_BuildValue("i", ntohs(d.from.sin_port)));
+        PyDict_SetItemString(incomingDict, "message", Py_BuildValue("s#", d.buf, d.buflen));
+        PyDict_SetItemString(incomingDict, "ts", Py_BuildValue("d", (double)d.tv.tv_sec + (double)d.tv.tv_usec/1000000.0));
+        tmp = Py_BuildValue("iiO", s, b, incomingDict);
+      } else {
+        tmp = Py_BuildValue("ii", s, b);
+      }
       return tmp;
     } else {
       /* Raising of standard StopIteration exception with empty value. */
@@ -605,6 +622,63 @@ static PyObject *send_block( PyObject * self, PyObject * args )
 
     Py_RETURN_NONE;
 }
+
+static PyObject *send_raw( PyObject * self, PyObject * args )
+{
+    UNUSED(self);
+    if (death) {
+        Py_RETURN_NONE;
+    }
+    //puts("SENDBLOCK_LOCKING\n");
+    if (!sock) {
+            PyErr_SetString(PyExc_AttributeError, "Sock not open");
+            return NULL;
+    }
+
+    unsigned char * dest;
+    int dest_len;
+    int port_num;
+
+    SendData message;
+    message.data[0] = BLK_EMPTY;
+
+    int s;
+
+    if (!PyArg_ParseTuple(args, "s#s#i", &message.data+1, &message.length, &dest, &dest_len, &port_num)) {
+                PyErr_SetString(PyExc_AttributeError, "Wrong arguments");
+                return NULL;
+    }
+
+    message.to.sin_family = AF_INET;
+
+    #ifdef __WIN32__
+    message.to.sin_addr.s_addr = s = inet_addr((const char*)dest);
+    #else
+    s = inet_pton(AF_INET, (const char*)dest, &(message.to.sin_addr));
+    #endif
+
+    if (s <= 0) {
+               if (s == 0) {
+                  PyErr_SetString(PyExc_AttributeError, "DEST IP: Not in presentation format");
+                  return NULL;
+               } else {
+                  PyErr_SetString(PyExc_AttributeError, "DEST IP: Not in presentation format");
+                  perror("inet_pton");
+                  return NULL;
+               }
+    }
+
+    if (port_num>65535 || port_num<1) {
+                  PyErr_SetString(PyExc_AttributeError, "Port number not allowed");
+                  return NULL;
+    }
+    message.to.sin_port=htons(port_num);
+
+    send_data(message);
+
+    Py_RETURN_NONE;
+}
+
 
 static PyObject *add_block( PyObject * self, PyObject * args )
 {
@@ -1139,6 +1213,8 @@ static char bpuller_docs[] =
     "bpuller( ): Create block pull iterator\n";
 static char send_block_docs[] =
     "send_block( streamid, blockid, ip, port ): Send a block to the given address\n";
+static char send_raw_docs[] =
+    "send_raw( message, ip, port ): Send a raw message to the given address\n";
 static char add_block_docs[] =
     "add_block( streamid, blockid, content ): Put an entire block in block cache\n";
 static char del_block_docs[] =
@@ -1173,6 +1249,7 @@ static PyMethodDef BoraMethods[] = {
     {"get_bw_stats", get_bw_stats, METH_NOARGS, bw_stats_docs},
     {"die", die, METH_NOARGS, die_docs},
     {"send_block", send_block, METH_VARARGS, send_block_docs},
+    {"send_raw", send_raw, METH_VARARGS, send_raw_docs},
     {"add_block", add_block, METH_VARARGS, add_block_docs},
     {"del_block", del_block, METH_VARARGS, del_block_docs},
     {"incomplete_block_list", incomplete_block_list, METH_NOARGS, incomplete_block_list_docs},

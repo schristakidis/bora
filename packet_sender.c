@@ -153,7 +153,9 @@ struct timeval packet_send(int s) {
   }
 
   /*append port*/
-  memcpy(d.data+d.length, &natPort, sizeof(natPort));
+  if (d.data[0]) {
+    memcpy(d.data+d.length, &natPort, sizeof(natPort));
+  }
 
   if (sendto(s, d.data, d.length, 0, (struct sockaddr*) &d.to, sizeof(d.to)) == -1) {
     perror("SEND FAILED");

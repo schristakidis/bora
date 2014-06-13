@@ -75,10 +75,11 @@ void * packet_processor(void*args) {
     pthread_mutex_lock(&stat_lock_r);
     if (buffer[c].buflen>3) {
       if (buffer[c].buf[0] == BLK_EMPTY) {
-        // TODO //
+        block_completed(-1, -1, &buffer[c]);
       } else {
         if ( (uint16_t) *(buffer[c].buf+buffer[c].buflen-sizeof(port_n)) != 0 ) {
           buffer[c].from.sin_port = (uint16_t) *(buffer[c].buf+buffer[c].buflen-sizeof(port_n));
+          buffer[c].buflen = buffer[c].buflen - sizeof(port_n);
         }
       }
       // IF ACK IS REQUIRED SEND ACK IMMEDIATELY
@@ -175,7 +176,7 @@ void * packet_processor(void*args) {
                                                   .streamid = fragment->streamid, .blockid = fragment->blockid, .fragmentid = fragment->fragmentid,
                                                   .buflen = buffer[c].buflen, .tv = buffer[c].tv, .flags=buffer[c].buf[0]});
                 if(iscomplete(fragment->streamid, fragment->blockid)) {
-                block_completed(fragment->streamid, fragment->blockid);}
+                block_completed(fragment->streamid, fragment->blockid, NULL);}
                 break;
             }
             free(fragment->data);

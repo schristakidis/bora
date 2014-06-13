@@ -500,12 +500,12 @@ static PyObject* die(PyObject* self, PyObject * value )
     sem_post(&s_biter_full);
     cookie_cleanup();
     sender_end_threads();
-    receiver_end_threads();
     shutdown(sock, SHUT_RDWR);
     if (close(sock)==-1) {
       perror("Could not close socket");
       Py_RETURN_NONE;
     }
+    receiver_end_threads();
     sock = 0;
     kill_bora_threads = 0;
 

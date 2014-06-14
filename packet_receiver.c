@@ -74,9 +74,11 @@ void * packet_processor(void*args) {
     }
     sem_wait(&bFull);
     pthread_mutex_lock(&stat_lock_r);
-    if (buffer[c].buflen>3) {
-      if (buffer[c].buf[0] == BLK_EMPTY) {
-        block_completed(-1, -1, &buffer[c]);
+    if (buffer[c].buflen>1) {
+      if (!buffer[c].buf[0]) {
+        if (buffer[c].buflen>3) {
+          block_completed(-1, -1, &buffer[c]);
+        }
       } else {
 
         buffer[c].buflen = buffer[c].buflen - sizeof(uint16_t);

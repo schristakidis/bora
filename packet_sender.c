@@ -216,6 +216,7 @@ void * send_packet(void * sock) {
 
 //PULLER THREAD
 void * send_pull(void* args) {
+  (void) (args);
   assert(args==NULL);
   for (;;) {
     if (kill_bora_threads) {

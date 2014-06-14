@@ -63,6 +63,7 @@ void * packet_receiver(void * socket) {
 }
 
 void * packet_processor(void*args) {
+  (void)(args);
   assert(args==NULL);
   uint8_t c = 0;
   //uint16_t port_n;

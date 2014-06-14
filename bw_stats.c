@@ -35,6 +35,7 @@ void init_bws(int interval) {
 }
 
 void * bws_thread (void * args) {
+  (void)(args);
   assert(args==NULL);
   for (;;) {
     if (kill_bora_threads) {

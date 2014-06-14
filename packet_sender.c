@@ -154,7 +154,8 @@ struct timeval packet_send(int s) {
 
   /*append port*/
   if (d.data[0]) {
-    memcpy(d.data+d.length, &natPort, sizeof(natPort));
+    memcpy(&d.data[d.length], &natPort, sizeof(uint16_t));
+    d.length = d.length + sizeof(uint16_t);
   }
 
   if (sendto(s, d.data, d.length, 0, (struct sockaddr*) &d.to, sizeof(d.to)) == -1) {
@@ -336,10 +337,10 @@ void sender_end_threads(void) {
     sem_post(&qEmpty);
     sem_destroy(&sFull);
     sem_destroy(&qEmpty);
-    pthread_join(sender_t, NULL);
+    //pthread_join(sender_t, NULL);
     pthread_cond_signal(&blockProduced);
     pthread_cond_signal(&produceBlock);
-    pthread_join(puller_t, NULL);
+    //pthread_join(puller_t, NULL);
     pthread_mutex_destroy(&stat_lock_s);
     pthread_mutex_destroy(&bpLock);
     pthread_mutex_destroy(&bwLock);

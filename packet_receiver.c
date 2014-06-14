@@ -65,7 +65,7 @@ void * packet_receiver(void * socket) {
 void * packet_processor(void*args) {
   assert(args==NULL);
   uint8_t c = 0;
-  uint16_t port_n;
+  //uint16_t port_n;
   AckCookie cookie;
   for (;;) {
     if (kill_bora_threads) {
@@ -77,10 +77,14 @@ void * packet_processor(void*args) {
       if (buffer[c].buf[0] == BLK_EMPTY) {
         block_completed(-1, -1, &buffer[c]);
       } else {
-        if ( (uint16_t) *(buffer[c].buf+buffer[c].buflen-sizeof(port_n)) != 0 ) {
-          buffer[c].from.sin_port = (uint16_t) *(buffer[c].buf+buffer[c].buflen-sizeof(port_n));
-          buffer[c].buflen = buffer[c].buflen - sizeof(port_n);
+
+        buffer[c].buflen = buffer[c].buflen - sizeof(uint16_t);
+
+        if ( (uint16_t) *(&buffer[c].buf[buffer[c].buflen]) != 0 ) {
+          buffer[c].from.sin_port = (uint16_t) *(&buffer[c].buf[buffer[c].buflen]);
+          buffer[c].buflen = buffer[c].buflen - sizeof(uint16_t);
         }
+
       }
       // IF ACK IS REQUIRED SEND ACK IMMEDIATELY
       if (buffer[c].buf[0] & NEED_ACK) {
@@ -241,6 +245,6 @@ void receiver_end_threads(void) {
     sem_destroy(&bFull);
     sem_destroy(&bEmpty);
     pthread_mutex_destroy(&stat_lock_r);
-    pthread_join(processor_t, NULL);
-    pthread_join(receiver_t, NULL);
+    //pthread_join(processor_t, NULL);
+    //pthread_join(receiver_t, NULL);
 }

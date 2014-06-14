@@ -73,6 +73,7 @@ int validate_block(unsigned char * blob, size_t l) {
     if (l==sizeof(FragmentHeader)+i && ((f&MASK_BLOCK_ACK&BLOCK_MASK_CONSECUTIVE&BLOCK_MASK_RETRANSMISSION)^BLK_EMPTY) == 0) {
       return 1;
     }
+    //printf("%i should be: %i (%i + %i)\n", l, sizeof(FragmentHeader)+i, sizeof(FragmentHeader), i);
   }
   if (l==(sizeof(FragmentHeader)+MTU)) {
     if (blob[0] == (NEED_ACK | COOKIE_MSG) ) {

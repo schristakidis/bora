@@ -204,10 +204,10 @@ PyObject* bora_BIter_iternext(PyObject *self)
       if (s==-1 && b==-1) {
         PyObject *incomingDict = PyDict_New();
         char host_ip[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &d.from, host_ip, INET_ADDRSTRLEN);
+        inet_ntop(AF_INET, &d.from.sin_addr, host_ip, INET_ADDRSTRLEN);
         PyDict_SetItemString(incomingDict, "host", Py_BuildValue("s", host_ip));
         PyDict_SetItemString(incomingDict, "port", Py_BuildValue("i", ntohs(d.from.sin_port)));
-        PyDict_SetItemString(incomingDict, "message", Py_BuildValue("s#", d.buf, d.buflen));
+        PyDict_SetItemString(incomingDict, "message", Py_BuildValue("s#", &d.buf[1], d.buflen-1));
         PyDict_SetItemString(incomingDict, "ts", Py_BuildValue("d", (double)d.tv.tv_sec + (double)d.tv.tv_usec/1000000.0));
         tmp = Py_BuildValue("iiO", s, b, incomingDict);
       } else {
@@ -638,18 +638,25 @@ static PyObject *send_raw( PyObject * self, PyObject * args )
     unsigned char * dest;
     int dest_len;
     int port_num;
+    char * message_string;
 
     SendData message;
     message.data[0] = BLK_EMPTY;
 
     int s;
 
-    if (!PyArg_ParseTuple(args, "s#s#i", &message.data+1, &message.length, &dest, &dest_len, &port_num)) {
+    if (!PyArg_ParseTuple(args, "s#si", &message_string, &message.length, &dest, &port_num)) {
                 PyErr_SetString(PyExc_AttributeError, "Wrong arguments");
                 return NULL;
     }
-
+    if (message.length > 1400) {
+                PyErr_SetString(PyExc_AttributeError, "Message too long to fit one UDP packet");
+                return NULL;
+    }
     message.to.sin_family = AF_INET;
+
+    memcpy(&message.data[1], message_string, message.length);
+    message.length = message.length+1;
 
     #ifdef __WIN32__
     message.to.sin_addr.s_addr = s = inet_addr((const char*)dest);
@@ -675,8 +682,10 @@ static PyObject *send_raw( PyObject * self, PyObject * args )
     message.to.sin_port=htons(port_num);
 
     send_data(message);
-
-    Py_RETURN_NONE;
+    PyObject* ret;
+    ret = Py_BuildValue("s#", message.data, message.length);
+    return ret;
+    //Py_RETURN_NONE;
 }
 
 

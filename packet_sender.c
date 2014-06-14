@@ -238,6 +238,9 @@ void * send_pull(void* args) {
 
 //PUBLIC FUNCTION
 void send_data(SendData d) {
+  if (!d.data[0]) {
+    puts("IS THIS A MESSAGE?");
+  }
   int w = sem_trywait(&qEmpty);
   if (w==-1) {
     puts ("ALL QUEUES FULL\n");

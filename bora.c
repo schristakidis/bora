@@ -636,7 +636,6 @@ static PyObject *send_raw( PyObject * self, PyObject * args )
     }
 
     unsigned char * dest;
-    int dest_len;
     int port_num;
     char * message_string;
 

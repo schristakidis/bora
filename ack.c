@@ -138,7 +138,7 @@ int resend_ooo_nacks(Ack*ack) {
         ret++;
         cur->d.data[0] &= BLOCK_MASK_CONSECUTIVE;
         if (cur->d.data[0]&(BLK_BLOCK_ACK)) {
-            cur->d.data[0] &= BLOCK_RETRANSMISSION;
+            cur->d.data[0] |= BLOCK_RETRANSMISSION;
             send_data(cur->d);
         }
         SLIST_REMOVE(&peer->nacks, cur, Ack, entries);

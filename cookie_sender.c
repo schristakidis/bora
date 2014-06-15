@@ -4,9 +4,16 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include <sys/socket.h>
+#ifdef __WIN32__
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <sys/stat.h>
+#else
 #include <netinet/in.h>
+#include <sys/socket.h>
 #include <arpa/inet.h>
+#endif
+
 
 #include "messages.h"
 #include "packet_sender.h"

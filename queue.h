@@ -32,8 +32,9 @@
 
 #ifndef _SYS_QUEUE_H_
 #define	_SYS_QUEUE_H_
+//#ifndef __WIN32__
 
-#include <sys/cdefs.h>
+//#include <sys/cdefs.h>
 
 /*
  * This file defines four types of data structures: singly-linked lists,
@@ -550,4 +551,5 @@ void	remque(void *a);
 
 #endif /* _KERNEL */
 
+//#endif
 #endif /* !_SYS_QUEUE_H_ */

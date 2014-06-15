@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #endif
 
+#include <pthread.h>
 #include <semaphore.h>
 #include <sys/time.h>
 

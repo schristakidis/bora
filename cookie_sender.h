@@ -1,9 +1,17 @@
 #ifndef COOKIE_SENDER_H
 #define COOKIE_SENDER_H
 
+#ifdef __WIN32__
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <sys/stat.h>
+#else
+#include <netinet/in.h>
+#include <sys/socket.h>
+#endif
+
 #include <pthread.h>
 #include <semaphore.h>
-#include <netinet/in.h>
 #include <time.h>
 #include <stdint.h>
 

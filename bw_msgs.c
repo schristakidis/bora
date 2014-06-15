@@ -25,7 +25,7 @@ static pthread_mutex_t bwm_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void bwmsg_received(BWMsg * bw_message) {
     pthread_mutex_lock(&bwm_lock);
-    SLIST_INSERT_HEAD(&bwmlist, bw_message, entries);
+    MYSLIST_INSERT_HEAD(&bwmlist, bw_message, entries);
     pthread_mutex_unlock(&bwm_lock);
 }
 
@@ -33,7 +33,7 @@ struct BandwidthMessages get_bwmsg_list(void) {
     struct BandwidthMessages ret;
     pthread_mutex_lock(&bwm_lock);
     ret = bwmlist;
-    SLIST_INIT(&bwmlist);
+    MYSLIST_INIT(&bwmlist);
     pthread_mutex_unlock(&bwm_lock);
     return ret;
 }

@@ -343,7 +343,7 @@ PyObject* bora_BWIter_iternext(PyObject *self)
 
       peer_stats = PyList_New(0);
       ackstats = get_ack_store();
-      SLIST_FOREACH(peercur, ackstats.peerstats, entries) {
+      MYSLIST_FOREACH(peercur, ackstats.peerstats, entries) {
         peer_dict = PyDict_New();
 #ifndef __WIN32__
         inet_ntop(AF_INET, &(peercur->addr.sin_addr), ip_addr, INET_ADDRSTRLEN);
@@ -365,7 +365,7 @@ PyObject* bora_BWIter_iternext(PyObject *self)
         PyDict_SetItemString(peer_dict, "acked_last", Py_BuildValue("l", peercur->last_acked));
         PyDict_SetItemString(peer_dict, "error_last", Py_BuildValue("l", peercur->last_error));
         peer_values = PyList_New(0);
-        SLIST_FOREACH_SAFE(peerscur, &peercur->ack_store, entries, tmppeerscur) {
+        MYSLIST_FOREACH_SAFE(peerscur, &peercur->ack_store, entries, tmppeerscur) {
           peer_stats_dict = PyDict_New();
           PyDict_SetItemString(peer_stats_dict, "sent", Py_BuildValue("d", (double)peerscur->sent.tv_sec + (double)peerscur->sent.tv_usec/1000000.0));
           PyDict_SetItemString(peer_stats_dict, "RTT", Py_BuildValue("l", peerscur->RTT.tv_sec * 1000000L + peerscur->RTT.tv_usec));
@@ -374,7 +374,7 @@ PyObject* bora_BWIter_iternext(PyObject *self)
           PyDict_SetItemString(peer_stats_dict, "sleep", Py_BuildValue("i", peerscur->sleeptime));
           PyList_Append(peer_values, peer_stats_dict);
 
-          SLIST_REMOVE(&peercur->ack_store, peerscur, AckStore, entries);
+          MYSLIST_REMOVE(&peercur->ack_store, peerscur, AckStore, entries);
           if (peerscur != ackstats.last_seq) {
             free(peerscur);
           }
@@ -892,26 +892,26 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
     struct bwstruct bwlist = fetch_bw_estimations();
 
     i = 0;
-    SLIST_FOREACH(band, &bwlist, entries)
+    MYSLIST_FOREACH(band, &bwlist, entries)
       i++;
 
     ret = PyList_New((Py_ssize_t)i);
 
     i = 0;
-    SLIST_FOREACH_SAFE(band, &bwlist, entries, band_temp) {
+    MYSLIST_FOREACH_SAFE(band, &bwlist, entries, band_temp) {
 
 
 
         j = 0;
-        SLIST_FOREACH(b, &band->bandwidth, entries)
+        MYSLIST_FOREACH(b, &band->bandwidth, entries)
             j++;
 
         PyObject* l = PyList_New((Py_ssize_t)j);
 
         j = 0;
-        SLIST_FOREACH_SAFE(b, &band->bandwidth, entries, b_temp) {
+        MYSLIST_FOREACH_SAFE(b, &band->bandwidth, entries, b_temp) {
             PyList_SET_ITEM(l, j, Py_BuildValue("{sksd}", "bw", (unsigned long int)b->bw, "tv", (double)b->tv.tv_sec + (double)b->tv.tv_usec/1000000.0));
-            SLIST_REMOVE(&band->bandwidth, b, BW, entries);
+            MYSLIST_REMOVE(&band->bandwidth, b, BW, entries);
             free(b);
             j++;
         }
@@ -928,7 +928,7 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
 #endif
 
         PyList_SET_ITEM(ret, i, Py_BuildValue("{sssHsO}", "ip", ip_addr, "port", ntohs(band->from.sin_port), "list", l));
-        SLIST_REMOVE(&bwlist, band, BWEstimation, entries);
+        MYSLIST_REMOVE(&bwlist, band, BWEstimation, entries);
         free(band);
 
         i++;
@@ -957,7 +957,7 @@ static PyObject *bora_get_bw_msg( PyObject * self, PyObject * args )
     struct BandwidthMessages bwlist = get_bwmsg_list();
 
     ret = PyList_New(0);
-    SLIST_FOREACH_SAFE(b, &bwlist, entries, b_temp) {
+    MYSLIST_FOREACH_SAFE(b, &bwlist, entries, b_temp) {
         char ip_addr[INET_ADDRSTRLEN];
 #ifndef __WIN32__
         inet_ntop(AF_INET, &(b->addr.sin_addr), ip_addr, INET_ADDRSTRLEN);
@@ -968,7 +968,7 @@ static PyObject *bora_get_bw_msg( PyObject * self, PyObject * args )
 #endif
         PyList_Append(ret, Py_BuildValue("{sssHsksd}", "ip", ip_addr, "port", ntohs(b->addr.sin_port), "bw", (unsigned long int)b->bw, "tv", (double)b->recv_time.tv_sec + (double)b->recv_time.tv_usec/1000000.0));
 
-        SLIST_REMOVE(&bwlist, b, BWMsg, entries);
+        MYSLIST_REMOVE(&bwlist, b, BWMsg, entries);
         free(b);
     }
 

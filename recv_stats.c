@@ -9,12 +9,12 @@ static struct bwstruct estimations;
 static pthread_mutex_t bw_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void init_recv_stats(void) {
-    SLIST_INIT(&estimations);
+    MYSLIST_INIT(&estimations);
 }
 
 BWEstimation * bw_find_by_host(struct sockaddr_in from, socklen_t fromlen) {
   BWEstimation * ret;
-  SLIST_FOREACH(ret, &estimations, entries) {
+  MYSLIST_FOREACH(ret, &estimations, entries) {
     if (ret != NULL) {
       if (ret->fromlen == fromlen) {
         if (memcmp(&ret->from, &from, fromlen) == 0) {
@@ -35,9 +35,9 @@ void fragment_received(RecvFragment fragment) {
 	if (host_bw == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
     host_bw->from = fragment.from;
     host_bw->fromlen = fragment.fromlen;
-    SLIST_INIT(&host_bw->bandwidth);
+    MYSLIST_INIT(&host_bw->bandwidth);
     host_bw->lastfragment = fragment;
-    SLIST_INSERT_HEAD(&estimations, host_bw, entries);
+    MYSLIST_INSERT_HEAD(&estimations, host_bw, entries);
   } else {
 
     if (host_bw->lastfragment.streamid   == fragment.streamid &&
@@ -55,7 +55,7 @@ void fragment_received(RecvFragment fragment) {
 
         band->bw = (fragment.buflen) / delta_t;
 
-        SLIST_INSERT_HEAD(&host_bw->bandwidth, band, entries);
+        MYSLIST_INSERT_HEAD(&host_bw->bandwidth, band, entries);
     }
 
     host_bw->lastfragment = fragment;
@@ -67,7 +67,7 @@ struct bwstruct fetch_bw_estimations (void) {
   struct bwstruct ret;
   pthread_mutex_lock(&bw_lock);
   ret = estimations;
-  SLIST_INIT(&estimations);
+  MYSLIST_INIT(&estimations);
   pthread_mutex_unlock(&bw_lock);
   return ret;
 }

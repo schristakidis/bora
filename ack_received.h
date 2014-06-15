@@ -32,10 +32,10 @@ typedef struct AckStore {
   struct timeval STT;
   uint16_t seq;
   uint32_t sleeptime;
-  SLIST_ENTRY(AckStore) entries;
+  MYSLIST_ENTRY(AckStore) entries;
 } AckStore;
 
-SLIST_HEAD(Ack_values, AckStore);
+MYSLIST_HEAD(Ack_values, AckStore);
 
 typedef struct PeerAckStore {
   struct sockaddr_in addr;
@@ -51,10 +51,10 @@ typedef struct PeerAckStore {
   uint64_t total_errors;
   int last_acked;
   int last_error;
-  SLIST_ENTRY(PeerAckStore) entries;
+  MYSLIST_ENTRY(PeerAckStore) entries;
 } PeerAckStore;
 
-SLIST_HEAD(Ack_store, PeerAckStore);
+MYSLIST_HEAD(Ack_store, PeerAckStore);
 
 typedef struct PeerAckStats {
   struct Ack_store * peerstats;

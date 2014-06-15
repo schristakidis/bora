@@ -23,10 +23,10 @@ typedef struct BWMsg {
   uint32_t bw;
   struct timeval recv_time;
   struct sockaddr_in addr;
-  SLIST_ENTRY(BWMsg) entries;
+  MYSLIST_ENTRY(BWMsg) entries;
 } BWMsg;
 
-SLIST_HEAD(BandwidthMessages, BWMsg);
+MYSLIST_HEAD(BandwidthMessages, BWMsg);
 
 void bwmsg_received(BWMsg * bw_message);
 

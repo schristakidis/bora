@@ -29,18 +29,18 @@ typedef struct Ack {
   struct timeval sendtime;
   uint32_t sleeptime;
   struct SendData d;
-  SLIST_ENTRY(Ack) entries;
+  MYSLIST_ENTRY(Ack) entries;
 } Ack;
 
-SLIST_HEAD(Nacks, Ack);
+MYSLIST_HEAD(Nacks, Ack);
 
 typedef struct Nack_peer {
     struct sockaddr_in addr;
     struct Nacks nacks;
-    SLIST_ENTRY(Nack_peer) entries;
+    MYSLIST_ENTRY(Nack_peer) entries;
 } Nack_peer;
 
-SLIST_HEAD(NackList, Nack_peer);
+MYSLIST_HEAD(NackList, Nack_peer);
 
 int append_ack(SendData * d, struct timeval sendtime, uint32_t sleeptime);
 

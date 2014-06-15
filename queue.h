@@ -78,7 +78,7 @@
  * For details on the use of these macros, see the queue(3) manual page.
  *
  *
- *				SLIST	LIST	STAILQ	TAILQ
+ *				MYSLIST	LIST	STAILQ	TAILQ
  * _HEAD			+	+	+	+
  * _HEAD_INITIALIZER		+	+	+	+
  * _ENTRY			+	+	+	+
@@ -138,15 +138,15 @@ struct qm_trace {
 /*
  * Singly-linked List declarations.
  */
-#define	SLIST_HEAD(name, type)						\
+#define	MYSLIST_HEAD(name, type)						\
 struct name {								\
 	struct type *slh_first;	/* first element */			\
 }
 
-#define	SLIST_HEAD_INITIALIZER(head)					\
+#define	MYSLIST_HEAD_INITIALIZER(head)					\
 	{ NULL }
 
-#define	SLIST_ENTRY(type)						\
+#define	MYSLIST_ENTRY(type)						\
 struct {								\
 	struct type *sle_next;	/* next element */			\
 }
@@ -154,56 +154,56 @@ struct {								\
 /*
  * Singly-linked List functions.
  */
-#define	SLIST_EMPTY(head)	((head)->slh_first == NULL)
+#define	MYSLIST_EMPTY(head)	((head)->slh_first == NULL)
 
-#define	SLIST_FIRST(head)	((head)->slh_first)
+#define	MYSLIST_FIRST(head)	((head)->slh_first)
 
-#define	SLIST_FOREACH(var, head, field)					\
-	for ((var) = SLIST_FIRST((head));				\
+#define	MYSLIST_FOREACH(var, head, field)					\
+	for ((var) = MYSLIST_FIRST((head));				\
 	    (var);							\
-	    (var) = SLIST_NEXT((var), field))
+	    (var) = MYSLIST_NEXT((var), field))
 
-#define	SLIST_FOREACH_SAFE(var, head, field, tvar)			\
-	for ((var) = SLIST_FIRST((head));				\
-	    (var) && ((tvar) = SLIST_NEXT((var), field), 1);		\
+#define	MYSLIST_FOREACH_SAFE(var, head, field, tvar)			\
+	for ((var) = MYSLIST_FIRST((head));				\
+	    (var) && ((tvar) = MYSLIST_NEXT((var), field), 1);		\
 	    (var) = (tvar))
 
-#define	SLIST_FOREACH_PREVPTR(var, varp, head, field)			\
-	for ((varp) = &SLIST_FIRST((head));				\
+#define	MYSLIST_FOREACH_PREVPTR(var, varp, head, field)			\
+	for ((varp) = &MYSLIST_FIRST((head));				\
 	    ((var) = *(varp)) != NULL;					\
-	    (varp) = &SLIST_NEXT((var), field))
+	    (varp) = &MYSLIST_NEXT((var), field))
 
-#define	SLIST_INIT(head) do {						\
-	SLIST_FIRST((head)) = NULL;					\
+#define	MYSLIST_INIT(head) do {						\
+	MYSLIST_FIRST((head)) = NULL;					\
 } while (0)
 
-#define	SLIST_INSERT_AFTER(slistelm, elm, field) do {			\
-	SLIST_NEXT((elm), field) = SLIST_NEXT((slistelm), field);	\
-	SLIST_NEXT((slistelm), field) = (elm);				\
+#define	MYSLIST_INSERT_AFTER(slistelm, elm, field) do {			\
+	MYSLIST_NEXT((elm), field) = MYSLIST_NEXT((slistelm), field);	\
+	MYSLIST_NEXT((slistelm), field) = (elm);				\
 } while (0)
 
-#define	SLIST_INSERT_HEAD(head, elm, field) do {			\
-	SLIST_NEXT((elm), field) = SLIST_FIRST((head));			\
-	SLIST_FIRST((head)) = (elm);					\
+#define	MYSLIST_INSERT_HEAD(head, elm, field) do {			\
+	MYSLIST_NEXT((elm), field) = MYSLIST_FIRST((head));			\
+	MYSLIST_FIRST((head)) = (elm);					\
 } while (0)
 
-#define	SLIST_NEXT(elm, field)	((elm)->field.sle_next)
+#define	MYSLIST_NEXT(elm, field)	((elm)->field.sle_next)
 
-#define	SLIST_REMOVE(head, elm, type, field) do {			\
-	if (SLIST_FIRST((head)) == (elm)) {				\
-		SLIST_REMOVE_HEAD((head), field);			\
+#define	MYSLIST_REMOVE(head, elm, type, field) do {			\
+	if (MYSLIST_FIRST((head)) == (elm)) {				\
+		MYSLIST_REMOVE_HEAD((head), field);			\
 	}								\
 	else {								\
-		struct type *curelm = SLIST_FIRST((head));		\
-		while (SLIST_NEXT(curelm, field) != (elm))		\
-			curelm = SLIST_NEXT(curelm, field);		\
-		SLIST_NEXT(curelm, field) =				\
-		    SLIST_NEXT(SLIST_NEXT(curelm, field), field);	\
+		struct type *curelm = MYSLIST_FIRST((head));		\
+		while (MYSLIST_NEXT(curelm, field) != (elm))		\
+			curelm = MYSLIST_NEXT(curelm, field);		\
+		MYSLIST_NEXT(curelm, field) =				\
+		    MYSLIST_NEXT(MYSLIST_NEXT(curelm, field), field);	\
 	}								\
 } while (0)
 
-#define	SLIST_REMOVE_HEAD(head, field) do {				\
-	SLIST_FIRST((head)) = SLIST_NEXT(SLIST_FIRST((head)), field);	\
+#define	MYSLIST_REMOVE_HEAD(head, field) do {				\
+	MYSLIST_FIRST((head)) = MYSLIST_NEXT(MYSLIST_FIRST((head)), field);	\
 } while (0)
 
 /*

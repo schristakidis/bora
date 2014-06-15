@@ -18,7 +18,7 @@ static AckStore * highest_seq = NULL;
 
 PeerAckStore * find_peer_by_host(struct sockaddr_in * from) {
     PeerAckStore * ret;
-    SLIST_FOREACH(ret, &peeracklist, entries) {
+    MYSLIST_FOREACH(ret, &peeracklist, entries) {
         if (memcmp(&ret->addr, from, sizeof(struct sockaddr_in)) == 0) {
             break;
         }
@@ -33,7 +33,7 @@ struct timeval compute_average (struct Ack_values * ack_store, int trip) {
   AckStore * cur;
   int64_t sec = 0;
   int64_t usec = 0;
-  SLIST_FOREACH(cur, ack_store, entries) {
+  MYSLIST_FOREACH(cur, ack_store, entries) {
     i++;
     if (trip==1) {
       sec += cur->STT.tv_sec;
@@ -90,12 +90,12 @@ int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, stru
     } else {
         highest_seq = ack_store;
     }
-    SLIST_INSERT_HEAD(&peer->ack_store, ack_store, entries);
-    SLIST_INSERT_HEAD(&peeracklist, peer, entries);
+    MYSLIST_INSERT_HEAD(&peer->ack_store, ack_store, entries);
+    MYSLIST_INSERT_HEAD(&peeracklist, peer, entries);
   } else {
   struct timeval prevRTT;
   struct timeval prevSTT;
-  AckStore * prevackstore = SLIST_FIRST(&peer->ack_store);
+  AckStore * prevackstore = MYSLIST_FIRST(&peer->ack_store);
     if (prevackstore) {
         prevRTT = prevackstore->RTT;
         prevSTT = prevackstore->STT;
@@ -120,7 +120,7 @@ int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, stru
         peer->minSTT = ack_store->STT;
     }
 
-    SLIST_INSERT_HEAD(&peer->ack_store, ack_store, entries);
+    MYSLIST_INSERT_HEAD(&peer->ack_store, ack_store, entries);
 
     peer->avgRTT = ack_store->RTT;//compute_average(&peer->ack_store, 2);
     peer->avgSTT = ack_store->STT;//compute_average(&peer->ack_store, 1);
@@ -163,7 +163,7 @@ struct PeerAckStats get_ack_store(void) {
 
 void release_ack_store(void) {
   PeerAckStore * cur;
-  SLIST_FOREACH(cur, &peeracklist, entries) {
+  MYSLIST_FOREACH(cur, &peeracklist, entries) {
     cur->last_acked = 0;
     cur->last_error = 0;
   }

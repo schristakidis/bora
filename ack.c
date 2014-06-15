@@ -32,7 +32,7 @@ static uint16_t seq_num = 0;
 
 Nack_peer * nack_find_by_host(struct sockaddr_in * from) {
   Nack_peer * ret;
-  SLIST_FOREACH(ret, &nacklist, entries) {
+  MYSLIST_FOREACH(ret, &nacklist, entries) {
     if (memcmp(&ret->addr, from, sizeof(struct sockaddr_in)) == 0) {
        break;
     }
@@ -51,8 +51,8 @@ int append_ack(SendData *d, struct timeval sendtime, uint32_t sleeptime) {
     peer_acks = (Nack_peer*)malloc(sizeof(Nack_peer));
     if (peer_acks == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
     peer_acks->addr = d->to;
-    SLIST_INIT(&peer_acks->nacks);
-    SLIST_INSERT_HEAD(&nacklist, peer_acks, entries);
+    MYSLIST_INIT(&peer_acks->nacks);
+    MYSLIST_INSERT_HEAD(&nacklist, peer_acks, entries);
   }
   nack = (Ack*) malloc(sizeof(Ack));
   if (nack == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
@@ -60,7 +60,7 @@ int append_ack(SendData *d, struct timeval sendtime, uint32_t sleeptime) {
   nack->sleeptime = sleeptime;
   nack->d = *d;
   nack->seq = seq_num;
-  SLIST_INSERT_HEAD(&peer_acks->nacks, nack, entries);
+  MYSLIST_INSERT_HEAD(&peer_acks->nacks, nack, entries);
   pthread_mutex_unlock(&nack_lock);
   _AckCookie cookie = (_AckCookie) {.seq = seq_num};//, .sec = htonl((uint32_t)sendtime.tv_sec), .usec = htonl((uint32_t)sendtime.tv_usec)};
   memcpy(&d->data[d->length], &cookie, sizeof(_AckCookie));
@@ -78,14 +78,14 @@ Ack * pop_ack(uint16_t seq, struct sockaddr_in * from) {
     return NULL;
   }
 
-  SLIST_FOREACH(ret, &peer->nacks, entries) {
+  MYSLIST_FOREACH(ret, &peer->nacks, entries) {
     //printf("%i %i\n", ret->seq, seq);
     if (ret->seq == seq) {
         break;
     }
   }
   if (ret!=NULL) {
-    SLIST_REMOVE(&peer->nacks, ret, Ack, entries);
+    MYSLIST_REMOVE(&peer->nacks, ret, Ack, entries);
   }
   pthread_mutex_unlock(&nack_lock);
   return ret;
@@ -113,10 +113,10 @@ int remove_ooo_nacks(Ack*ack) {
   pthread_mutex_lock(&nack_lock);
   peer = nack_find_by_host(&ack->d.to);
   if (peer != NULL) {
-    SLIST_FOREACH_SAFE(cur, &peer->nacks, entries, tmp_cur) {
+    MYSLIST_FOREACH_SAFE(cur, &peer->nacks, entries, tmp_cur) {
       if (timercmp(&cur->sendtime, &ack->sendtime, <)) {
         ret++;
-        SLIST_REMOVE(&peer->nacks, cur, Ack, entries);
+        MYSLIST_REMOVE(&peer->nacks, cur, Ack, entries);
         free(cur);
       }
     }
@@ -133,7 +133,7 @@ int resend_ooo_nacks(Ack*ack) {
   pthread_mutex_lock(&nack_lock);
   peer = nack_find_by_host(&ack->d.to);
   if (peer != NULL) {
-    SLIST_FOREACH_SAFE(cur, &peer->nacks, entries, tmp_cur) {
+    MYSLIST_FOREACH_SAFE(cur, &peer->nacks, entries, tmp_cur) {
       if (timercmp(&cur->sendtime, &ack->sendtime, <)) {
         ret++;
         cur->d.data[0] &= BLOCK_MASK_CONSECUTIVE;
@@ -141,7 +141,7 @@ int resend_ooo_nacks(Ack*ack) {
             cur->d.data[0] |= BLOCK_RETRANSMISSION;
             send_data(cur->d);
         }
-        SLIST_REMOVE(&peer->nacks, cur, Ack, entries);
+        MYSLIST_REMOVE(&peer->nacks, cur, Ack, entries);
         free(cur);
       }
     }
@@ -155,8 +155,8 @@ int get_n_nack(void) {
   Nack_peer * n;
   Ack * a;
   pthread_mutex_lock(&nack_lock);
-  SLIST_FOREACH(n, &nacklist, entries) {
-    SLIST_FOREACH(a, &n->nacks, entries) {
+  MYSLIST_FOREACH(n, &nacklist, entries) {
+    MYSLIST_FOREACH(a, &n->nacks, entries) {
       ret++;
     }
   }

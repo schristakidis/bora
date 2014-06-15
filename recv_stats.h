@@ -29,20 +29,20 @@ typedef struct RecvFragment {
 typedef struct BW {
   double bw;
   struct timeval tv;
-  SLIST_ENTRY(BW) entries;
+  MYSLIST_ENTRY(BW) entries;
 } BW;
 
-SLIST_HEAD(bandwidths, BW);
+MYSLIST_HEAD(bandwidths, BW);
 
 typedef struct BWEstimation {
   struct sockaddr_in from;
   socklen_t fromlen;
   struct bandwidths bandwidth;
   RecvFragment lastfragment;
-  SLIST_ENTRY(BWEstimation) entries;
+  MYSLIST_ENTRY(BWEstimation) entries;
 } BWEstimation;
 
-SLIST_HEAD(bwstruct, BWEstimation);
+MYSLIST_HEAD(bwstruct, BWEstimation);
 
 void init_recv_stats(void);
 void fragment_received(RecvFragment fragment);

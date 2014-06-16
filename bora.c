@@ -212,7 +212,7 @@ PyObject* bora_BIter_iternext(PyObject *self)
         inet_ntop(AF_INET, &d.from.sin_addr, host_ip, INET_ADDRSTRLEN);
 #else
         char * tmp_str;
-        tmp_str = inet_ntoa(d.from.sin_addr); 
+        tmp_str = inet_ntoa(d.from.sin_addr);
 		strcpy(host_ip, tmp_str);
 #endif
         PyDict_SetItemString(incomingDict, "host", Py_BuildValue("s", host_ip));
@@ -349,7 +349,7 @@ PyObject* bora_BWIter_iternext(PyObject *self)
         inet_ntop(AF_INET, &(peercur->addr.sin_addr), ip_addr, INET_ADDRSTRLEN);
 #else
         char * tmp_str;
-        tmp_str = inet_ntoa(peercur->addr.sin_addr); 
+        tmp_str = inet_ntoa(peercur->addr.sin_addr);
 		strcpy(ip_addr, tmp_str);
 #endif
         PyDict_SetItemString(peer_dict, "host", Py_BuildValue("s", ip_addr));
@@ -391,7 +391,7 @@ PyObject* bora_BWIter_iternext(PyObject *self)
 #else
         char * tmp_str;
         tmp_str = inet_ntoa(ls->addr->sin_addr);
-		strcpy(ip_addr, tmp_str); 
+		strcpy(ip_addr, tmp_str);
 #endif
         PyDict_SetItemString(last_seq_dict, "host", Py_BuildValue("s", ip_addr));
         PyDict_SetItemString(last_seq_dict, "port", Py_BuildValue("i", ntohs(ls->addr->sin_port)));
@@ -529,7 +529,7 @@ static PyObject* die(PyObject* self, PyObject * value )
 #endif
     if (close(sock)==-1) {
       perror("Could not close socket");
-      Py_RETURN_NONE;
+      //Py_RETURN_NONE;
     }
     receiver_end_threads();
     sock = 0;
@@ -581,7 +581,7 @@ static PyObject *listen_on( PyObject * self, PyObject * value)
 #else
         setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 #endif
-		
+
         init_sender(sock);
         init_receiver(sock);
         init_biter();
@@ -918,13 +918,13 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
 
 
         char ip_addr[INET_ADDRSTRLEN];
-		
+
 #ifndef __WIN32__
         inet_ntop(AF_INET, &(band->from.sin_addr), ip_addr, INET_ADDRSTRLEN);
 #else
         char * tmp_str;
-        tmp_str = inet_ntoa(band->from.sin_addr); 
-		strcpy(ip_addr, tmp_str); 
+        tmp_str = inet_ntoa(band->from.sin_addr);
+		strcpy(ip_addr, tmp_str);
 #endif
 
         PyList_SET_ITEM(ret, i, Py_BuildValue("{sssHsO}", "ip", ip_addr, "port", ntohs(band->from.sin_port), "list", l));
@@ -963,8 +963,8 @@ static PyObject *bora_get_bw_msg( PyObject * self, PyObject * args )
         inet_ntop(AF_INET, &(b->addr.sin_addr), ip_addr, INET_ADDRSTRLEN);
 #else
         char * tmp_str;
-        tmp_str = inet_ntoa(b->addr.sin_addr); 
-		strcpy(ip_addr, tmp_str); 
+        tmp_str = inet_ntoa(b->addr.sin_addr);
+		strcpy(ip_addr, tmp_str);
 #endif
         PyList_Append(ret, Py_BuildValue("{sssHsksd}", "ip", ip_addr, "port", ntohs(b->addr.sin_port), "bw", (unsigned long int)b->bw, "tv", (double)b->recv_time.tv_sec + (double)b->recv_time.tv_usec/1000000.0));
 
@@ -1203,7 +1203,7 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
             inet_ntop(AF_INET, &ckResult[i].addr.sin_addr, dest, INET_ADDRSTRLEN);
 #else
             char * tmp_str;
-            tmp_str = inet_ntoa(ckResult[i].addr.sin_addr); 
+            tmp_str = inet_ntoa(ckResult[i].addr.sin_addr);
 		    strcpy(dest, tmp_str);
 #endif
             PyDict_SetItemString(dict_ck, "host", Py_BuildValue("s", dest));

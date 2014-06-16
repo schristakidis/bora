@@ -248,7 +248,7 @@ void receiver_end_threads(void) {
     sem_post(&bFull);
     sem_post(&bEmpty);
     pthread_join(processor_t, NULL);
-    pthread_join(receiver_t, NULL);
+    //pthread_join(receiver_t, NULL);
     sem_destroy(&bFull);
     sem_destroy(&bEmpty);
     pthread_mutex_destroy(&stat_lock_r);

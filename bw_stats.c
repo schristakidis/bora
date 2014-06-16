@@ -53,6 +53,7 @@ void * bws_thread (void * args) {
     pthread_mutex_unlock(&bwLock);
   }
   printf("BWS THREAD DOWN\n");
+  pthread_exit(0);
   return NULL;
 }
 

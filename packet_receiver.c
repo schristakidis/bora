@@ -59,6 +59,7 @@ void * packet_receiver(void * socket) {
     sem_post(&bFull);
   }
   printf("Packet receiver processor going out\n");
+  pthread_exit(0);
   return (void*) 0;
 }
 
@@ -217,6 +218,7 @@ void * packet_processor(void*args) {
     sem_post(&bEmpty);
   }
   puts("THREAD \"processor\" going out");
+  pthread_exit(0);
   return (void*) 0;
 
 }
@@ -245,9 +247,9 @@ void init_receiver (int s) {
 void receiver_end_threads(void) {
     sem_post(&bFull);
     sem_post(&bEmpty);
+    pthread_join(processor_t, NULL);
+    pthread_join(receiver_t, NULL);
     sem_destroy(&bFull);
     sem_destroy(&bEmpty);
     pthread_mutex_destroy(&stat_lock_r);
-    //pthread_join(processor_t, NULL);
-    //pthread_join(receiver_t, NULL);
 }

@@ -211,6 +211,7 @@ void * send_packet(void * sock) {
     pthread_mutex_unlock(&send_lock);
   }
   printf("SEND thread going out\n");
+  pthread_exit(0);
   return 0;
 }
 
@@ -226,6 +227,10 @@ void * send_pull(void* args) {
     pthread_cond_wait(&produceBlock, &pbLock);
     pthread_mutex_unlock(&pbLock);
 
+    if (kill_bora_threads) {
+        break;
+    }
+
     block_pull();
 
     pthread_mutex_lock(&bpLock);
@@ -233,6 +238,7 @@ void * send_pull(void* args) {
     pthread_mutex_unlock(&bpLock);
   }
   printf("SEND puller going out\n");
+  pthread_exit(0);
   return 0;
 }
 
@@ -336,12 +342,14 @@ uint16_t set_nat_port(uint16_t port_n) {
 void sender_end_threads(void) {
     sem_post(&sFull);
     sem_post(&qEmpty);
-    sem_destroy(&sFull);
-    sem_destroy(&qEmpty);
-    //pthread_join(sender_t, NULL);
     pthread_cond_signal(&blockProduced);
     pthread_cond_signal(&produceBlock);
-    //pthread_join(puller_t, NULL);
+    pthread_cond_signal(&blockProduced);
+    pthread_cond_signal(&produceBlock);
+    pthread_join(sender_t, NULL);
+    pthread_join(puller_t, NULL);
+    sem_destroy(&sFull);
+    sem_destroy(&qEmpty);
     pthread_mutex_destroy(&stat_lock_s);
     pthread_mutex_destroy(&bpLock);
     pthread_mutex_destroy(&bwLock);

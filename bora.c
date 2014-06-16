@@ -522,6 +522,7 @@ static PyObject* die(PyObject* self, PyObject * value )
     sem_post(&s_biter_full);
     cookie_cleanup();
     sender_end_threads();
+    receiver_end_threads();
 #ifdef __WIN32__
 	shutdown (sock, SD_BOTH);
 #else
@@ -531,7 +532,6 @@ static PyObject* die(PyObject* self, PyObject * value )
       perror("Could not close socket");
       //Py_RETURN_NONE;
     }
-    receiver_end_threads();
     sock = 0;
     kill_bora_threads = 0;
 

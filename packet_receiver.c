@@ -164,7 +164,7 @@ void * packet_processor(void*args) {
               case F_DUPLICATE:
                 stats_r[I_DUPE_COUNTER]++;
                 stats_r[I_DUPE_DATA_COUNTER] += buffer[c].buflen;
-                puts("DUPLICATE FRAGMENT\n");
+                //puts("DUPLICATE FRAGMENT\n");
                 break;
               case F_FRAGMENTID_OUTOFBOUNDS:
                 stats_r[I_GARBAGE] += buffer[c].buflen;

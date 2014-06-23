@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#ifdef __WIN32__
+#ifdef _WIN32 || _WIN64
 #include <sys/stat.h>
 //#include "bora_win_helper.h"
 #endif
@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#ifdef __WIN32__
+#ifdef _WIN32 || _WIN64
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
@@ -48,7 +48,7 @@ static int c = 0;
 
 static int bws_running = 0;
 
-#ifdef __WIN32__
+#ifdef _WIN32 || _WIN64
 
 int init_wsa (void) {
 	WSADATA wsaData;
@@ -208,7 +208,7 @@ PyObject* bora_BIter_iternext(PyObject *self)
       if (s==-1 && b==-1) {
         PyObject *incomingDict = PyDict_New();
         char host_ip[INET_ADDRSTRLEN];
-#ifndef __WIN32__
+#ifndef _WIN32 || _WIN64
         inet_ntop(AF_INET, &d.from.sin_addr, host_ip, INET_ADDRSTRLEN);
 #else
         char * tmp_str;
@@ -345,7 +345,7 @@ PyObject* bora_BWIter_iternext(PyObject *self)
       ackstats = get_ack_store();
       MYSLIST_FOREACH(peercur, ackstats.peerstats, entries) {
         peer_dict = PyDict_New();
-#ifndef __WIN32__
+#ifndef _WIN32 || _WIN64
         inet_ntop(AF_INET, &(peercur->addr.sin_addr), ip_addr, INET_ADDRSTRLEN);
 #else
         char * tmp_str;
@@ -386,7 +386,7 @@ PyObject* bora_BWIter_iternext(PyObject *self)
       if (PyList_Size(peer_stats)>0 && ackstats.last_seq!=NULL) {
         AckStore * ls = ackstats.last_seq;
         last_seq_dict = PyDict_New();
-#ifndef __WIN32__
+#ifndef _WIN32 || _WIN64
         inet_ntop(AF_INET, &(ls->addr->sin_addr), ip_addr, INET_ADDRSTRLEN);
 #else
         char * tmp_str;
@@ -523,7 +523,7 @@ static PyObject* die(PyObject* self, PyObject * value )
     cookie_cleanup();
     sender_end_threads();
     receiver_end_threads();
-#ifdef __WIN32__
+#ifdef _WIN32 || _WIN64
 	shutdown (sock, SD_BOTH);
 #else
 	shutdown (sock, SHUT_RDWR);
@@ -576,7 +576,7 @@ static PyObject *listen_on( PyObject * self, PyObject * value)
         }
 
         int opt = 1;
-#ifdef __WIN32__
+#ifdef _WIN32 || _WIN64
         setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt));
 #else
         setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -621,7 +621,7 @@ static PyObject *send_block( PyObject * self, PyObject * args )
     }
     destaddr.sin_family = AF_INET;
 
-    #ifdef __WIN32__
+    #ifdef _WIN32 || _WIN64
     destaddr.sin_addr.s_addr = s = inet_addr((const char*)dest);
     #else
     s = inet_pton(AF_INET, (const char*)dest, &(destaddr.sin_addr));
@@ -687,7 +687,7 @@ static PyObject *send_raw( PyObject * self, PyObject * args )
     memcpy(&message.data[1], message_string, message.length);
     message.length = message.length+1;
 
-    #ifdef __WIN32__
+    #ifdef _WIN32 || _WIN64
     message.to.sin_addr.s_addr = s = inet_addr((const char*)dest);
     #else
     s = inet_pton(AF_INET, (const char*)dest, &(message.to.sin_addr));
@@ -919,7 +919,7 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
 
         char ip_addr[INET_ADDRSTRLEN];
 
-#ifndef __WIN32__
+#ifndef _WIN32 || _WIN64
         inet_ntop(AF_INET, &(band->from.sin_addr), ip_addr, INET_ADDRSTRLEN);
 #else
         char * tmp_str;
@@ -959,7 +959,7 @@ static PyObject *bora_get_bw_msg( PyObject * self, PyObject * args )
     ret = PyList_New(0);
     MYSLIST_FOREACH_SAFE(b, &bwlist, entries, b_temp) {
         char ip_addr[INET_ADDRSTRLEN];
-#ifndef __WIN32__
+#ifndef _WIN32 || _WIN64
         inet_ntop(AF_INET, &(b->addr.sin_addr), ip_addr, INET_ADDRSTRLEN);
 #else
         char * tmp_str;
@@ -1022,7 +1022,7 @@ static PyObject *bora_send_bw_msg( PyObject * self, PyObject * args )
 
         addr.sin_family = AF_INET;
 
-    #ifdef __WIN32__
+    #ifdef _WIN32 || _WIN64
         addr.sin_addr.s_addr = s = inet_addr((const char*)PyString_AsString(PyDict_GetItemString(dict_cur, "ip")));
     #else
 
@@ -1157,7 +1157,7 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
     destaddr1.sin_family = AF_INET;
     destaddr2.sin_family = AF_INET;
 
-    #ifdef __WIN32__
+    #ifdef _WIN32 || _WIN64
     destaddr1.sin_addr.s_addr = s = inet_addr((const char*)dest1);
     destaddr2.sin_addr.s_addr = s = inet_addr((const char*)dest2);
     #else
@@ -1199,7 +1199,7 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
         for (i=0; i<2; i++) {
             dict_ck = PyDict_New();
 
-#ifndef __WIN32__
+#ifndef _WIN32 || _WIN64
             inet_ntop(AF_INET, &ckResult[i].addr.sin_addr, dest, INET_ADDRSTRLEN);
 #else
             char * tmp_str;
@@ -1335,7 +1335,7 @@ initbora(void)
   bora_BWIterType.tp_new = PyType_GenericNew;
   if (PyType_Ready(&bora_BWIterType) < 0)  return;
 
-  #ifdef __WIN32__
+  #ifdef _WIN32 || _WIN64
   init_wsa();
   #endif
 

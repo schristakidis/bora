@@ -5,7 +5,7 @@
 #include <sys/time.h>
 #include <stdint.h>
 
-#ifdef __WIN32__
+#ifdef _WIN32 || _WIN64
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else

@@ -1,7 +1,7 @@
 #ifndef BPULLER_BRIDGE_H
 #define BPULLER_BRIDGE_H
 
-#ifdef __WIN32__
+#ifdef _WIN32 || _WIN64
 #include <sys/stat.h>
 #endif
 #include <semaphore.h>

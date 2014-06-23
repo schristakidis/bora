@@ -32,7 +32,7 @@
 
 #ifndef _SYS_QUEUE_H_
 #define	_SYS_QUEUE_H_
-//#ifndef __WIN32__
+//#ifndef _WIN32 || _WIN64
 
 //#include <sys/cdefs.h>
 

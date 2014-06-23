@@ -6,7 +6,7 @@
 #include <string.h>
 #include <assert.h>
 
-#ifdef __WIN32__
+#ifdef _WIN32 || _WIN64
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <sys/stat.h>

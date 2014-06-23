@@ -722,7 +722,7 @@ static PyObject *send_block( PyObject * self, PyObject * args )
 
     if (s == 0) {
                   PyErr_SetString(PyExc_AttributeError, "DEST IP: Not in presentation format");
-                  printf("return: %i, got: %s", s, PyString_AsString(PyDict_GetItemString(dict_cur, "ip")));
+                  printf("return: %i, got: %s", s, dest);
                   return NULL;
     }
     #else
@@ -731,11 +731,11 @@ static PyObject *send_block( PyObject * self, PyObject * args )
     if (s <= 0) {
                if (s == 0) {
                   PyErr_SetString(PyExc_AttributeError, "DEST IP: Not in presentation format");
-                  printf("return: %i, got: %s", s, PyString_AsString(PyDict_GetItemString(dict_cur, "ip")));
+                  printf("return: %i, got: %s", s, dest);
                   return NULL;
                } else {
                   PyErr_SetString(PyExc_AttributeError, "DEST IP: Not in presentation format");
-                  printf("return: %i, got: %s", s, PyString_AsString(PyDict_GetItemString(dict_cur, "ip")));
+                  printf("return: %i, got: %s", s, dest);
                   perror("inet_pton");
                   return NULL;
                }

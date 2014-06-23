@@ -208,12 +208,12 @@ PyObject* bora_BIter_iternext(PyObject *self)
       if (s==-1 && b==-1) {
         PyObject *incomingDict = PyDict_New();
         char host_ip[INET_ADDRSTRLEN];
-#ifndef _WIN32 || _WIN64
-        inet_ntop(AF_INET, &d.from.sin_addr, host_ip, INET_ADDRSTRLEN);
-#else
+#if defined(_WIN32) || defined(_WIN64)
         char * tmp_str;
         tmp_str = inet_ntoa(d.from.sin_addr);
 		strcpy(host_ip, tmp_str);
+#else
+        inet_ntop(AF_INET, &d.from.sin_addr, host_ip, INET_ADDRSTRLEN);
 #endif
         PyDict_SetItemString(incomingDict, "host", Py_BuildValue("s", host_ip));
         PyDict_SetItemString(incomingDict, "port", Py_BuildValue("i", ntohs(d.from.sin_port)));
@@ -345,12 +345,12 @@ PyObject* bora_BWIter_iternext(PyObject *self)
       ackstats = get_ack_store();
       MYSLIST_FOREACH(peercur, ackstats.peerstats, entries) {
         peer_dict = PyDict_New();
-#ifndef _WIN32 || _WIN64
-        inet_ntop(AF_INET, &(peercur->addr.sin_addr), ip_addr, INET_ADDRSTRLEN);
-#else
+#if defined(_WIN32) || defined(_WIN64)
         char * tmp_str;
         tmp_str = inet_ntoa(peercur->addr.sin_addr);
 		strcpy(ip_addr, tmp_str);
+#else
+        inet_ntop(AF_INET, &(peercur->addr.sin_addr), ip_addr, INET_ADDRSTRLEN);
 #endif
         PyDict_SetItemString(peer_dict, "host", Py_BuildValue("s", ip_addr));
         PyDict_SetItemString(peer_dict, "port", Py_BuildValue("i", ntohs((peercur->addr).sin_port)));
@@ -386,12 +386,12 @@ PyObject* bora_BWIter_iternext(PyObject *self)
       if (PyList_Size(peer_stats)>0 && ackstats.last_seq!=NULL) {
         AckStore * ls = ackstats.last_seq;
         last_seq_dict = PyDict_New();
-#ifndef _WIN32 || _WIN64
-        inet_ntop(AF_INET, &(ls->addr->sin_addr), ip_addr, INET_ADDRSTRLEN);
-#else
+#if defined(_WIN32) || defined(_WIN64)
         char * tmp_str;
         tmp_str = inet_ntoa(ls->addr->sin_addr);
 		strcpy(ip_addr, tmp_str);
+#else
+        inet_ntop(AF_INET, &(ls->addr->sin_addr), ip_addr, INET_ADDRSTRLEN);
 #endif
         PyDict_SetItemString(last_seq_dict, "host", Py_BuildValue("s", ip_addr));
         PyDict_SetItemString(last_seq_dict, "port", Py_BuildValue("i", ntohs(ls->addr->sin_port)));
@@ -919,12 +919,14 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
 
         char ip_addr[INET_ADDRSTRLEN];
 
-#ifndef _WIN32 || _WIN64
-        inet_ntop(AF_INET, &(band->from.sin_addr), ip_addr, INET_ADDRSTRLEN);
-#else
+#if defined(_WIN32) || defined(_WIN64)
+
         char * tmp_str;
         tmp_str = inet_ntoa(band->from.sin_addr);
 		strcpy(ip_addr, tmp_str);
+#else
+
+        inet_ntop(AF_INET, &(band->from.sin_addr), ip_addr, INET_ADDRSTRLEN);
 #endif
 
         PyList_SET_ITEM(ret, i, Py_BuildValue("{sssHsO}", "ip", ip_addr, "port", ntohs(band->from.sin_port), "list", l));
@@ -959,12 +961,12 @@ static PyObject *bora_get_bw_msg( PyObject * self, PyObject * args )
     ret = PyList_New(0);
     MYSLIST_FOREACH_SAFE(b, &bwlist, entries, b_temp) {
         char ip_addr[INET_ADDRSTRLEN];
-#ifndef _WIN32 || _WIN64
-        inet_ntop(AF_INET, &(b->addr.sin_addr), ip_addr, INET_ADDRSTRLEN);
-#else
+#if defined(_WIN32) || defined(_WIN64)
         char * tmp_str;
         tmp_str = inet_ntoa(b->addr.sin_addr);
 		strcpy(ip_addr, tmp_str);
+#else
+        inet_ntop(AF_INET, &(b->addr.sin_addr), ip_addr, INET_ADDRSTRLEN);
 #endif
         PyList_Append(ret, Py_BuildValue("{sssHsksd}", "ip", ip_addr, "port", ntohs(b->addr.sin_port), "bw", (unsigned long int)b->bw, "tv", (double)b->recv_time.tv_sec + (double)b->recv_time.tv_usec/1000000.0));
 
@@ -995,12 +997,14 @@ static PyObject *bora_send_bw_msg( PyObject * self, PyObject * args )
     int s;
 
 
-    if (!PyArg_ParseTuple(args, "O", &pylist)) {
+    f defined(_WIN32) || defined(_WIN64)
+        if (!PyArg_ParseTuple(args, "O", &pylist)) {
                 PyErr_SetString(PyExc_AttributeError, "Wrong arguments");
                 return NULL;
     }
 
-    if (!PyList_Check(pylist)) {
+    f defined(_WIN32) || defined(_WIN64)
+        if (!PyList_Check(pylist)) {
                 PyErr_SetString(PyExc_AttributeError, "First argument is not a list");
                 return NULL;
 
@@ -1199,12 +1203,12 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
         for (i=0; i<2; i++) {
             dict_ck = PyDict_New();
 
-#ifndef _WIN32 || _WIN64
-            inet_ntop(AF_INET, &ckResult[i].addr.sin_addr, dest, INET_ADDRSTRLEN);
-#else
+#if defined(_WIN32) || defined(_WIN64)
             char * tmp_str;
             tmp_str = inet_ntoa(ckResult[i].addr.sin_addr);
 		    strcpy(dest, tmp_str);
+#else
+            inet_ntop(AF_INET, &ckResult[i].addr.sin_addr, dest, INET_ADDRSTRLEN);
 #endif
             PyDict_SetItemString(dict_ck, "host", Py_BuildValue("s", dest));
             PyDict_SetItemString(dict_ck, "port", Py_BuildValue("i", ntohs(ckResult[i].addr.sin_port)));

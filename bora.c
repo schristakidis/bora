@@ -686,7 +686,7 @@ static PyObject *send_raw( PyObject * self, PyObject * args )
 
     memcpy(&message.data[1], message_string, message.length);
     message.length = message.length+1;
-
+    
     #if defined(_WIN32) || defined(_WIN64)
     message.to.sin_addr.s_addr = s = inet_addr((const char*)dest);
     #else
@@ -696,10 +696,12 @@ static PyObject *send_raw( PyObject * self, PyObject * args )
     if (s <= 0) {
                if (s == 0) {
                   PyErr_SetString(PyExc_AttributeError, "DEST IP: Not in presentation format");
+                  printf("0: %s", dest);
                   return NULL;
                } else {
                   PyErr_SetString(PyExc_AttributeError, "DEST IP: Not in presentation format");
                   perror("inet_pton");
+                  printf("%i: %s", dest);
                   return NULL;
                }
     }

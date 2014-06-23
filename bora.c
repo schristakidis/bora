@@ -626,7 +626,7 @@ static PyObject *send_block( PyObject * self, PyObject * args )
     #else
     s = inet_pton(AF_INET, (const char*)dest, &(destaddr.sin_addr));
     #endif
-
+/*
     if (s <= 0) {
                if (s == 0) {
                   PyErr_SetString(PyExc_AttributeError, "DEST IP: Not in presentation format");
@@ -637,7 +637,7 @@ static PyObject *send_block( PyObject * self, PyObject * args )
                   return NULL;
                }
     }
-
+*/
     if (port_num>65535 || port_num<1) {
                   PyErr_SetString(PyExc_AttributeError, "Port number not allowed");
                   return NULL;
@@ -692,7 +692,7 @@ static PyObject *send_raw( PyObject * self, PyObject * args )
     #else
     s = inet_pton(AF_INET, (const char*)dest, &(message.to.sin_addr));
     #endif
-
+/*
     if (s <= 0) {
                if (s == 0) {
                   PyErr_SetString(PyExc_AttributeError, "DEST IP: Not in presentation format");
@@ -705,7 +705,7 @@ static PyObject *send_raw( PyObject * self, PyObject * args )
                   return NULL;
                }
     }
-
+*/
     if (port_num>65535 || port_num<1) {
                   PyErr_SetString(PyExc_AttributeError, "Port number not allowed");
                   return NULL;
@@ -1168,7 +1168,7 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
     s = inet_pton(AF_INET, (const char*)dest1, &(destaddr1.sin_addr));
     t = inet_pton(AF_INET, (const char*)dest2, &(destaddr2.sin_addr));
     #endif
-
+/*
     if (s <= 0 || t <= 0) {
                if (s == 0 || t == 0) {
                   PyErr_SetString(PyExc_AttributeError, "DEST IP: Not in presentation format");
@@ -1179,7 +1179,7 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
                   return NULL;
                }
     }
-
+*/
     if (port1_num>65535 || port1_num<1 || port2_num>65535 || port2_num<1) {
                   PyErr_SetString(PyExc_AttributeError, "Port number not allowed");
                   return NULL;

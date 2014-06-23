@@ -997,13 +997,13 @@ static PyObject *bora_send_bw_msg( PyObject * self, PyObject * args )
     int s;
 
 
-    f defined(_WIN32) || defined(_WIN64)
+    if defined(_WIN32) || defined(_WIN64)
         if (!PyArg_ParseTuple(args, "O", &pylist)) {
                 PyErr_SetString(PyExc_AttributeError, "Wrong arguments");
                 return NULL;
     }
 
-    f defined(_WIN32) || defined(_WIN64)
+    if defined(_WIN32) || defined(_WIN64)
         if (!PyList_Check(pylist)) {
                 PyErr_SetString(PyExc_AttributeError, "First argument is not a list");
                 return NULL;

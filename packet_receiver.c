@@ -1,5 +1,5 @@
 #include <pthread.h>
-#ifdef _WIN32 || _WIN64
+#if defined(_WIN32) || defined(_WIN64)
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else

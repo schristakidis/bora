@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#ifdef _WIN32 || _WIN64
+#if defined(_WIN32) || defined(_WIN64)
 #include <sys/stat.h>
 //#include "bora_win_helper.h"
 #endif
@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#ifdef _WIN32 || _WIN64
+#if defined(_WIN32) || defined(_WIN64)
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
@@ -48,7 +48,7 @@ static int c = 0;
 
 static int bws_running = 0;
 
-#ifdef _WIN32 || _WIN64
+#if defined(_WIN32) || defined(_WIN64)
 
 int init_wsa (void) {
 	WSADATA wsaData;
@@ -523,7 +523,7 @@ static PyObject* die(PyObject* self, PyObject * value )
     cookie_cleanup();
     sender_end_threads();
     receiver_end_threads();
-#ifdef _WIN32 || _WIN64
+#if defined(_WIN32) || defined(_WIN64)
 	shutdown (sock, SD_BOTH);
 #else
 	shutdown (sock, SHUT_RDWR);
@@ -576,7 +576,7 @@ static PyObject *listen_on( PyObject * self, PyObject * value)
         }
 
         int opt = 1;
-#ifdef _WIN32 || _WIN64
+#if defined(_WIN32) || defined(_WIN64)
         setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt));
 #else
         setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -621,7 +621,7 @@ static PyObject *send_block( PyObject * self, PyObject * args )
     }
     destaddr.sin_family = AF_INET;
 
-    #ifdef _WIN32 || _WIN64
+    #if defined(_WIN32) || defined(_WIN64)
     destaddr.sin_addr.s_addr = s = inet_addr((const char*)dest);
     #else
     s = inet_pton(AF_INET, (const char*)dest, &(destaddr.sin_addr));
@@ -687,7 +687,7 @@ static PyObject *send_raw( PyObject * self, PyObject * args )
     memcpy(&message.data[1], message_string, message.length);
     message.length = message.length+1;
 
-    #ifdef _WIN32 || _WIN64
+    #if defined(_WIN32) || defined(_WIN64)
     message.to.sin_addr.s_addr = s = inet_addr((const char*)dest);
     #else
     s = inet_pton(AF_INET, (const char*)dest, &(message.to.sin_addr));
@@ -1022,7 +1022,7 @@ static PyObject *bora_send_bw_msg( PyObject * self, PyObject * args )
 
         addr.sin_family = AF_INET;
 
-    #ifdef _WIN32 || _WIN64
+    #if defined(_WIN32) || defined(_WIN64)
         addr.sin_addr.s_addr = s = inet_addr((const char*)PyString_AsString(PyDict_GetItemString(dict_cur, "ip")));
     #else
 
@@ -1157,7 +1157,7 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
     destaddr1.sin_family = AF_INET;
     destaddr2.sin_family = AF_INET;
 
-    #ifdef _WIN32 || _WIN64
+    #if defined(_WIN32) || defined(_WIN64)
     destaddr1.sin_addr.s_addr = s = inet_addr((const char*)dest1);
     destaddr2.sin_addr.s_addr = s = inet_addr((const char*)dest2);
     #else
@@ -1335,7 +1335,7 @@ initbora(void)
   bora_BWIterType.tp_new = PyType_GenericNew;
   if (PyType_Ready(&bora_BWIterType) < 0)  return;
 
-  #ifdef _WIN32 || _WIN64
+  #if defined(_WIN32) || defined(_WIN64)
   init_wsa();
   #endif
 

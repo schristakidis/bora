@@ -24,7 +24,10 @@
 #include "bpuller_bridge.h"
 #include "cookie_sender.h"
 
-#define S_TRESHOLD 3
+#define S_TRESHOLD 50000 // SET SEND QUEUE IN uSEC
+
+#define HIT_TRESHOLD S_TRESHOLD > MTU * f_send * 1000000L / bandwidth
+
 #define N_SEND 2000
 #define N_RETR 2000
 #define N_PRIO 2000
@@ -81,7 +84,9 @@ struct timeval packet_send(int s) {
   gettimeofday(&t_start, NULL);
 
   pthread_mutex_lock(&send_lock);
-  if (f_send<S_TRESHOLD) {
+  //printf("S_TRESHOLD: %i, MTU: %i, f_send: %i, nowthres: %i, bandwidth: %i\n", S_TRESHOLD, MTU, f_send, MTU * f_send * 1000000L / bandwidth, bandwidth);
+  if (HIT_TRESHOLD) {
+    //puts("HIT!");
     pthread_cond_signal(&produceBlock);
   }
   pthread_mutex_unlock(&send_lock);
@@ -204,7 +209,9 @@ void * send_packet(void * sock) {
     //puts("SEND_PACKET post send\n");
 
     pthread_mutex_lock(&send_lock);
-    if (f_send<S_TRESHOLD) {
+    //printf("S_TRESHOLD: %i, MTU: %i, f_send: %i, nowthres: %i, bandwidth: %i\n", S_TRESHOLD, MTU, f_send, MTU * f_send * 1000000L / bandwidth, bandwidth);
+    if (HIT_TRESHOLD) {
+      //puts("HIT!");
       pthread_cond_signal(&produceBlock);
       //puts("COND PRODUCEBLOCK");
     }

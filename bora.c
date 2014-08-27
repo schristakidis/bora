@@ -1054,6 +1054,20 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
     return ret;
 }
 
+static PyObject *bora_get_que_size( PyObject * self, PyObject * args )
+{
+    PyObject * ret;
+    UNUSED(self);
+    UNUSED(args);
+    if (!sock) {
+        PyErr_SetString(PyExc_AttributeError, "Sock not open");
+        return NULL;
+    }
+    ret = Py_BuildValue("i", get_send_size());
+    return ret;
+}
+
+
 static PyObject *bora_get_bw_msg( PyObject * self, PyObject * args )
 {
     UNUSED(self);
@@ -1425,6 +1439,8 @@ static char send_cookie_docs[] =
     "send_cookie( address1, port1, address2, port2 ): Send cookie packets to two peers\n";
 static char set_nat_port_docs[] =
     "set_nat_port( port ): Set the NAT port open for receiving\n";
+static char get_que_size_docs[] =
+    "get_que_size( ): Get the size in fragments of send queue (block fragments only)\n";
 
 
 
@@ -1449,6 +1465,7 @@ static PyMethodDef BoraMethods[] = {
     {"get_bw_msg", bora_get_bw_msg, METH_NOARGS, get_bw_msg_docs},
     {"send_cookie", bora_send_cookie, METH_VARARGS, send_cookie_docs},
     {"set_nat_port", bora_set_nat_port, METH_VARARGS, set_nat_port_docs},
+    {"get_que_size", bora_get_que_size, METH_NOARGS, get_que_size_docs},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

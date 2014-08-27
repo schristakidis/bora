@@ -346,6 +346,13 @@ uint16_t set_nat_port(uint16_t port_n) {
     return natPort;
 }
 
+int get_send_size(void) {
+    pthread_mutex_lock(&send_lock);
+    int ret = f_send;
+    pthread_mutex_unlock(&send_lock);
+    return ret;
+}
+
 void sender_end_threads(void) {
     sem_post(&sFull);
     sem_post(&qEmpty);

@@ -229,6 +229,7 @@ void * send_packet(void * sock) {
             lasthost = NULL;
         }
     }
+    z = 0;
     //puts("SEND_PACKET pre sleep\n");
     usleep(sleeptime);
     //puts("SEND_PACKET post sleep\n");

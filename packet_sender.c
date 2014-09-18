@@ -63,6 +63,8 @@ static int f_prio = 0;
 static uint64_t bandwidth = 1000000;
 static uint64_t sleeptime = 1500;
 
+static int z = 0;
+
 sem_t sFull;
 sem_t qEmpty;
 
@@ -79,7 +81,7 @@ struct timeval packet_send(int s) {
   struct timeval t_idle;
   int c = 0;
   int l;
-  int z = 0;
+  //int z = 0;
   SendData d;
   gettimeofday(&t_start, NULL);
 
@@ -93,7 +95,13 @@ struct timeval packet_send(int s) {
 
   sem_wait(&sFull);
 
-  if (lasthost) {
+  if (z) {
+    goto send_data_packet;
+  } else {
+    lasthost = NULL;
+  }
+
+  /*if (lasthost) {
     struct sockaddr_in* nexthost;
     pthread_mutex_lock(&send_lock);
     if (f_send>0) {
@@ -109,7 +117,7 @@ struct timeval packet_send(int s) {
     } else {
         lasthost = NULL;
     }
-  }
+    }*/
 
   if (sem_trywait(&ckFull)==0) {
     d = *(get_cookie_data());
@@ -198,9 +206,28 @@ struct timeval packet_send(int s) {
 void * send_packet(void * sock) {
   int s = *(int*) sock;
   free(sock);
+  uint64_t sleep_prev = 0;
+  struct sockaddr_in* nexthost;
   for (;;) {
     if (kill_bora_threads) {
         break;
+    }
+    if (lasthost) {
+        pthread_mutex_lock(&send_lock);
+        if (f_send>0) {
+          nexthost = &send_buf[(N_SEND+c_send-f_send)%N_SEND].to;
+          if ((nexthost->sin_port == lasthost->sin_port) && (memcmp(&nexthost->sin_addr, &lasthost->sin_addr, 4)==0)) {
+            z = 1;
+          }
+        }
+        pthread_mutex_unlock(&send_lock);
+        if (z) {
+            sleep_prev = sleeptime;
+            packet_send(s);
+            sleeptime = sleep_prev + sleeptime;
+        } else {
+            lasthost = NULL;
+        }
     }
     //puts("SEND_PACKET pre sleep\n");
     usleep(sleeptime);

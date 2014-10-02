@@ -104,8 +104,6 @@ BlockIDList get_incomplete_block_list(void);
 
 BlockIDList get_complete_block_list(void);
 
-#include "netencoder.h"
-
 uint16_t get_consecutives(FragmentID * fragment);
 
 #endif

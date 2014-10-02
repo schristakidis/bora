@@ -330,8 +330,8 @@ uint16_t get_consecutives(FragmentID * fragment) {
 	if (block==NULL) {
         return ret;
     }
-    for (i=fragment->fragmentid-1; i>0; i--) {
-        if (block->f[i].have == 1) {
+    for (i=fragment->fragmentid; i>0; i--) {
+        if (block->f[i-1].have == 1) {
             ret++;
         } else {
             break;

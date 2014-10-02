@@ -1,10 +1,11 @@
 #ifndef NETENCODER_H
 #define NETENCODER_H
 
+#include "blockcache.h"
 #include "ack_received.h"
+#include "ack.h"
 #include "packet_sender.h"
 #include "bw_msgs.h"
-#include "blockcache.h"
 
 
 
@@ -32,8 +33,11 @@ int validate_bw(unsigned char * blob, size_t l);
 
 int validate_block(unsigned char * blob, size_t l);
 
+void append_ack_cons(SendData *s, uint16_t cons);
 void append_ack_ts(SendData *s, struct timeval *ts);
 
 int get_header_size (void);
+
+FragmentID get_fragment_id(unsigned char * fragmentstring, ssize_t length);
 
 #endif

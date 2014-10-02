@@ -946,6 +946,7 @@ static PyObject *get_in_stats( PyObject * self, PyObject * value )
     PyDict_SetItemString(ret, "I_GARBAGE", Py_BuildValue("i", stats_r[I_GARBAGE]));
     PyDict_SetItemString(ret, "I_DUPE_COUNTER", Py_BuildValue("i", stats_r[I_DUPE_COUNTER]));
     PyDict_SetItemString(ret, "I_DUPE_DATA_COUNTER", Py_BuildValue("i", stats_r[I_DUPE_DATA_COUNTER]));
+    PyDict_SetItemString(ret, "I_BAD_ACK_COUNTER", Py_BuildValue("i", stats_r[I_BAD_ACK_COUNTER]));
     if (rst) {
       reset_in_counters();
     }
@@ -1499,4 +1500,10 @@ initbora(void)
 
   Py_INCREF(&bora_BWIterType);
   PyModule_AddObject(m, "_BWIter", (PyObject *)&bora_BWIterType);
+
+#ifdef BORA_RETRANSMISSION
+  puts("Bora RETRANSMISSION ENABLED");
+#else
+  puts("Bora RETRANSMISSION DISABLED");
+#endif // BORA_RETRANSMISSION
 }

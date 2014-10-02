@@ -4,6 +4,7 @@
 #include <string.h>
 #include <assert.h>
 
+#include "bora_util.h"
 #include "messages.h"
 #include "cookie_sender.h"
 #include "ack_received.h"
@@ -51,6 +52,18 @@ struct timeval compute_average (struct Ack_values * ack_store, int trip) {
   return ret;
 }
 
+uint64_t get_timeout_value (struct sockaddr_in * peer_address) {
+  uint64_t ret = 0;
+  PeerAckStore * peer;
+  pthread_mutex_lock(&ack_list);
+  peer = find_peer_by_host(peer_address);
+  if (peer) {
+    ret = peer->lastRTT * 1.5;
+  }
+  pthread_mutex_unlock(&ack_list);
+  return ret;
+}
+
 int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, struct sockaddr_in from) {
   PeerAckStore * peer;
   AckStore * ack_store;
@@ -58,7 +71,9 @@ int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, stru
   pthread_mutex_lock(&ack_list);
   peer = find_peer_by_host(&from);
   if (peer==NULL) {
-    remove_ooo_nacks(ack_s);
+    if (remove_ooo_nacks(ack_s)>0) {
+        puts("WHY ARE WE HERE???\n");
+    }
     peer = (PeerAckStore*)malloc(sizeof(PeerAckStore));
     if (peer == NULL) { perror("Unable to allocate memory"); exit(EXIT_FAILURE); }
     peer->addr = from;
@@ -79,6 +94,7 @@ int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, stru
     peer->avgSTT = ack_store->STT;
     peer->minSTT = ack_store->STT;
     peer->errSTT = (struct timeval) {0};
+    peer->lastRTT = time_to_usec(ack_store->RTT);
     peer->total_acked = 1;
     peer->last_acked = 1;
     peer->total_errors = 0;
@@ -125,10 +141,14 @@ int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, stru
     peer->avgRTT = ack_store->RTT;//compute_average(&peer->ack_store, 2);
     peer->avgSTT = ack_store->STT;//compute_average(&peer->ack_store, 1);
 
+    peer->lastRTT = time_to_usec(ack_store->RTT);
+
     peer->total_acked += 1;
     peer->last_acked += 1;
 
 #ifdef BORA_RETRANSMISSION
+    int lost_acks = remove_lost_acks(ack_s, ack_r->cons);
+    printf("LOST ACKS: %d\n", lost_acks);
     int errors = resend_ooo_nacks(ack_s);
 #else
     int errors = remove_ooo_nacks(ack_s);

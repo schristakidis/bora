@@ -13,8 +13,10 @@
 #include <sys/socket.h>
 #endif
 
+#include "bora_util.h"
 #include "ack.h"
 #include "messages.h"
+#include "blockcache.h"
 #include "netencoder.h"
 
 
@@ -91,6 +93,7 @@ Ack * pop_ack(uint16_t seq, struct sockaddr_in * from) {
   return ret;
 }
 
+
 AckCookie strip_ack(unsigned char * fragment, size_t fsize) {
   AckCookie ret;
   _AckCookie * acky = (_AckCookie*) (&fragment[ fsize - sizeof(_AckCookie)]);
@@ -99,7 +102,7 @@ AckCookie strip_ack(unsigned char * fragment, size_t fsize) {
   //b= fragment[ fsize - sizeof(_AckCookie)-1];
   //c= fragment[ fsize - sizeof(_AckCookie)+1];
   //printf("VALUES: %d -- a %d, b %d, c %d", fsize - sizeof(_AckCookie), a, b, c);
-  ret.seq = acky->seq;
+  ret.seq  = acky->seq;
   //ret.sendtime.tv_sec = ntohl(acky->sec);
   //ret.sendtime.tv_usec = ntohl(acky->usec);
   return ret;
@@ -125,6 +128,35 @@ int remove_ooo_nacks(Ack*ack) {
   return ret;
 }
 
+int remove_lost_acks(Ack*ack, uint16_t cons) {
+  int ret = 0;
+  Nack_peer * peer;
+  Ack * cur;
+  Ack *tmp_cur;
+  FragmentID content;
+  FragmentID ack_content = get_fragment_id(ack->d.data, ack->d.length);
+  pthread_mutex_lock(&nack_lock);
+  peer = nack_find_by_host(&ack->d.to);
+  if (peer != NULL) {
+    MYSLIST_FOREACH_SAFE(cur, &peer->nacks, entries, tmp_cur) {
+      if (timercmp(&cur->sendtime, &ack->sendtime, <)) {
+        content = get_fragment_id(cur->d.data, cur->d.length);
+        if (content.streamid == ack_content.streamid &&
+            content.blockid  == ack_content.blockid  &&
+            content.fragmentid < ack_content.fragmentid &&
+            ack_content.fragmentid - content.fragmentid <= cons)
+            {
+                printf("MISSED ACK FOR FRAGMENT sid:%d bid:%d fid:%d\n", content.streamid, content.blockid, content.fragmentid);
+                MYSLIST_REMOVE(&peer->nacks, cur, Ack, entries);
+                free(cur);
+            }
+      }
+    }
+  }
+  pthread_mutex_unlock(&nack_lock);
+  return ret;
+}
+
 int resend_ooo_nacks(Ack*ack) {
   int ret = 0;
   Nack_peer * peer;
@@ -135,6 +167,33 @@ int resend_ooo_nacks(Ack*ack) {
   if (peer != NULL) {
     MYSLIST_FOREACH_SAFE(cur, &peer->nacks, entries, tmp_cur) {
       if (timercmp(&cur->sendtime, &ack->sendtime, <)) {
+        ret++;
+        cur->d.data[0] &= BLOCK_MASK_CONSECUTIVE;
+        if (cur->d.data[0]&(BLK_BLOCK_ACK)) {
+            cur->d.data[0] |= BLOCK_RETRANSMISSION;
+            send_data(cur->d);
+        }
+        MYSLIST_REMOVE(&peer->nacks, cur, Ack, entries);
+        free(cur);
+      }
+    }
+  }
+  pthread_mutex_unlock(&nack_lock);
+  return ret;
+}
+
+int resend_timeout_nacks(struct timeval now) {
+  int ret = 0;
+  Nack_peer * peer;
+  Ack * cur;
+  Ack *tmp_cur;
+  uint64_t timeout;
+  uint64_t now_usec = time_to_usec(now);
+  pthread_mutex_lock(&nack_lock);
+  MYSLIST_FOREACH(peer, &nacklist, entries) {
+    timeout = get_timeout_value(&peer->addr);
+    MYSLIST_FOREACH_SAFE(cur, &peer->nacks, entries, tmp_cur) {
+      if (now_usec > (time_to_usec(cur->sendtime) + timeout)) {
         ret++;
         cur->d.data[0] &= BLOCK_MASK_CONSECUTIVE;
         if (cur->d.data[0]&(BLK_BLOCK_ACK)) {

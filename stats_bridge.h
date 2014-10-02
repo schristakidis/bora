@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 
-#define NUM_STAT_R 7
+#define NUM_STAT_R 8
 #define I_PKG_COUNTER 0
 #define I_DATA_COUNTER 1
 #define I_ACK_DATA_COUNTER 2
@@ -13,6 +13,7 @@
 #define I_GARBAGE 4
 #define I_DUPE_COUNTER 5
 #define I_DUPE_DATA_COUNTER 6
+#define I_BAD_ACK_COUNTER 7
 
 #define NUM_STAT_S 6
 #define O_DATA_COUNTER 0

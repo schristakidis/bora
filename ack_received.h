@@ -21,6 +21,7 @@ typedef struct AckReceived {
   uint16_t seq;
   int32_t sec;
   int32_t usec;
+  uint16_t cons;
 } AckReceived;
 
 typedef struct AckStore {
@@ -45,6 +46,7 @@ typedef struct PeerAckStore {
   struct timeval avgSTT;
   struct timeval errRTT;
   struct timeval errSTT;
+  uint64_t lastRTT;
   struct Ack_values ack_store;
   int cur;
   uint64_t total_acked;
@@ -65,5 +67,6 @@ typedef struct PeerAckStats {
 int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, struct sockaddr_in from);
 struct PeerAckStats get_ack_store(void);
 void release_ack_store(void);
+uint64_t get_timeout_value (struct sockaddr_in * peer_address);
 
 #endif

@@ -63,6 +63,14 @@ typedef struct BlockIDList {
   int length;
 } BlockIDList;
 
+typedef struct FragmentID {
+  unsigned char flags;
+  uint16_t streamid;
+  uint32_t blockid;
+  uint16_t fragmentid;
+  uint16_t fragments;
+  uint16_t length;
+} FragmentID;
 
 void init_bcache(void);
 
@@ -95,5 +103,9 @@ int sendblock(uint16_t streamid, uint32_t blockid, struct sockaddr_in to);
 BlockIDList get_incomplete_block_list(void);
 
 BlockIDList get_complete_block_list(void);
+
+#include "netencoder.h"
+
+uint16_t get_consecutives(FragmentID * fragment);
 
 #endif

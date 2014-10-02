@@ -321,3 +321,23 @@ BlockIDList get_complete_block_list(void) {
   pthread_rwlock_unlock(&rwlock);
   return ret;
 }
+
+uint16_t get_consecutives(FragmentID * fragment) {
+    uint16_t ret = 0;
+    int i;
+	Block * block = findblock(fragment->streamid, fragment->blockid);
+	//printf("FRAGMENT RECEIVED: sid:%d, bid:%d, fid:%d, fs:%d, len:%d\n", fragment->streamid, fragment->blockid, fragment->fragmentid, fragment->fragments, fragment->length);
+	if (block==NULL) {
+        return ret;
+    }
+    for (i=fragment->fragmentid; i>0; i++) {
+        i--;
+        if (block->f[i].have == 1) {
+            ret++;
+        } else {
+            break;
+        }
+    }
+    pthread_mutex_unlock(&block->lock);
+    return ret;
+}

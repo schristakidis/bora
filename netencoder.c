@@ -31,6 +31,7 @@ typedef struct __attribute__((__packed__)) {
   uint16_t seq;
   uint32_t sec;
   uint32_t usec;
+  uint16_t cons;
 } AckPacket;
 
 typedef struct __attribute__((__packed__)) {
@@ -146,6 +147,10 @@ SendData encode_bw(uint32_t bw) {
 	return s;
 }
 
+void append_ack_cons(SendData *s, uint16_t cons) {
+    ((AckPacket*)s->data)->cons = htons(cons);
+}
+
 void append_ack_ts(SendData *s, struct timeval *ts) {
     ((AckPacket*)s->data)->sec = htonl((uint32_t)ts->tv_sec);
     ((AckPacket*)s->data)->usec = htonl((uint32_t)ts->tv_usec);
@@ -161,6 +166,7 @@ AckReceived * decode_ack(unsigned char* ack_r, ssize_t length) {
     ret->seq = ((AckPacket*) ack_r)->seq;
     ret->sec = ntohl(((AckPacket*) ack_r)->sec);
     ret->usec = ntohl(((AckPacket*) ack_r)->usec);
+    ret->cons = ntohs(((AckPacket*) ack_r)->cons);
     return ret;
 }
 
@@ -183,4 +189,26 @@ unsigned char get_flags(unsigned char * fragment) {
 unsigned char set_flags(unsigned char * fragment, unsigned char flags) {
     memcpy(fragment, &flags, 1);
     return flags;
+}
+
+FragmentID get_fragment_id(unsigned char * fragmentstring, ssize_t length) {
+    FragmentID ret = (FragmentID) {0};
+	if (length < (unsigned)sizeof(FragmentHeader)) {
+		fputs("MALFORMED FRAGMENT: LEN LESS THAN HEADER\r\n", stderr);
+		return ret;
+	}
+	if (!((((FragmentHeader*)fragmentstring)->flags)&BLK_BLOCK)) {
+		fputs("FRAGMENT IS NOT PART OF A BLOCK\r\n", stderr);
+		return ret;
+	}
+	ret.streamid = ntohs(((FragmentHeader*)fragmentstring)->streamid);
+	ret.blockid = ntohl(((FragmentHeader*)fragmentstring)->blockid);
+	ret.fragmentid = ntohs(((FragmentHeader*)fragmentstring)->fragmentid);
+	ret.fragments = ntohs(((FragmentHeader*)fragmentstring)->fragments);
+	ret.length = ntohs(((FragmentHeader*)fragmentstring)->length);
+	if (length != ret.length + (unsigned)sizeof(FragmentHeader)) {
+		fputs("MALFORMED FRAGMENT: LEN NOT MATCHING\r\n", stderr);
+		return ret;
+	}
+	return ret;
 }

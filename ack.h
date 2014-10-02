@@ -14,7 +14,6 @@
 #endif
 
 #include "queue.h"
-#include "blockcache.h"
 #include "packet_sender.h"
 
 #define ACKSIZE (sizeof(uint16_t) )//+ sizeof(uint32_t) + sizeof(uint32_t))
@@ -52,6 +51,9 @@ Ack * pop_ack(uint16_t seq, struct sockaddr_in * from);
 
 int remove_ooo_nacks(Ack*ack);
 int resend_ooo_nacks(Ack*ack);
+
+int resend_timeout_nacks(struct timeval now);
+int remove_lost_acks(Ack*ack, uint16_t cons);
 
 int get_seq(void);
 #endif

@@ -102,6 +102,8 @@ void * packet_processor(void*args) {
           // MAKE ACKnowledge packet
           SendData s;
           s = encode_ack(cookie.seq);
+          FragmentID fdata = get_fragment_id(&buffer[c].buf[0], buffer[c].buflen);
+          append_ack_cons(&s, get_consecutives(&fdata));
           append_ack_ts(&s, &buffer[c].tv);
           s.to = buffer[c].from;
           send_data(s);
@@ -127,7 +129,8 @@ void * packet_processor(void*args) {
           } else {
             free(ack_r);
             stats_r[I_GARBAGE] += buffer[c].buflen;
-            puts("BAD ACK\n*************\n");
+            stats_r[I_BAD_ACK_COUNTER]++;
+            // puts("BAD ACK\n*************\n");
           }
         } else {
           //BUFFER IS NOT FILLED bad packet!?!

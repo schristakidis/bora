@@ -200,7 +200,7 @@ int resend_timeout_nacks(struct timeval now) {
         cur->d.data[0] &= BLOCK_MASK_CONSECUTIVE;
         if (cur->d.data[0]&(BLK_BLOCK_ACK)) {
             cur->d.data[0] |= BLOCK_RETRANSMISSION;
-            //send_data(cur->d);
+            send_data(cur->d);
         }
         MYSLIST_REMOVE(&peer->nacks, cur, Ack, entries);
         free(cur);

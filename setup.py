@@ -4,7 +4,7 @@ from platform import system
 if system() == 'Windows':
 	module1 = Extension('bora',
                     define_macros = [('BORA_RETRANSMISSION', '1'),
-                                     ('DEF2', '0')],
+                                     ('BORA_TIMEOUT', '1')],
                     extra_compile_args = ['-g','-mno-ms-bitfields', '-Wall', '-Wextra', '-Wstrict-prototypes'],
                     include_dirs = ['./', '/usr/include/'],
                     libraries = ['pthreadgc2', 'Ws2_32'],
@@ -13,7 +13,7 @@ if system() == 'Windows':
 else:
 	module1 = Extension('bora',
                     define_macros = [('BORA_RETRANSMISSION', '1'),
-                                     ('DEF2', '0')],
+                                     ('BORA_TIMEOUT', '1')],
                     extra_compile_args = ['-g','-ggdb', '-mno-ms-bitfields', '-Wall', '-Wextra', '-Wstrict-prototypes'],
                     include_dirs = ['./', '/usr/include/'],
                     libraries = ['pthread'],

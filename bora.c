@@ -1251,6 +1251,11 @@ static PyObject *bora_bws_set( PyObject * self, PyObject * args )
     set_bws_interval(bws_time);
     bws_return_value(rst);
     //puts("BWS SETTTTT\n");
+ #ifdef BORA_TIMEOUT
+    struct timeval now;
+    gettimeofday(&now);
+    resend_timeout_nacks(now);
+ #endif // BORA_TIMEOUT
     Py_RETURN_NONE;
 
 }

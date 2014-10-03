@@ -74,6 +74,13 @@ int validate_block(unsigned char * blob, size_t l) {
     if (l==sizeof(FragmentHeader)+i && ((f&MASK_BLOCK_ACK&BLOCK_MASK_CONSECUTIVE&BLOCK_MASK_RETRANSMISSION)^BLK_EMPTY) == 0) {
       return 1;
     }
+    /*
+    printf("F      %x\n", f);
+    printf("1      %x\n", MASK_BLOCK_ACK);
+    printf("2      %x\n", BLOCK_MASK_CONSECUTIVE);
+    printf("3      %x\n", BLOCK_MASK_RETRANSMISSION);
+    printf("=      %x\n", (f&MASK_BLOCK_ACK&BLOCK_MASK_CONSECUTIVE&BLOCK_MASK_RETRANSMISSION)^BLK_EMPTY);
+    */
     //printf("%i should be: %i (%i + %i)\n", l, sizeof(FragmentHeader)+i, sizeof(FragmentHeader), i);
   }
   if (l==(sizeof(FragmentHeader)+MTU)) {

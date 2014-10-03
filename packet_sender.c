@@ -65,6 +65,10 @@ static uint64_t sleeptime = 1500;
 
 static int z = 0;
 
+#ifdef BORA_DROP
+static int r = 0;
+#endif // BORA_DROP
+
 sem_t sFull;
 sem_t qEmpty;
 
@@ -171,6 +175,33 @@ struct timeval packet_send(int s) {
     d.length = d.length + sizeof(uint16_t);
   }
 
+#ifdef BORA_DROP
+            r = rand()%100;
+            if (r>BORA_DROP) {
+              if (sendto(s, d.data, d.length, 0, (struct sockaddr*) &d.to, sizeof(d.to)) == -1) {
+                perror("SEND FAILED");
+              } else {
+                if (!c) {
+                  if (z) {
+                    lasthost = NULL;
+                  } else if (d.data[0] & BLK_BLOCK) {
+                    lasthost = lhalloc;
+                    memcpy(lasthost, &d.to, sizeof(struct sockaddr_in));
+                  }
+                }
+              }
+            } else {
+                if (!c) {
+                  if (z) {
+                    lasthost = NULL;
+                  } else if (d.data[0] & BLK_BLOCK) {
+                    lasthost = lhalloc;
+                    memcpy(lasthost, &d.to, sizeof(struct sockaddr_in));
+                  }
+                }
+            }
+#else
+
   if (sendto(s, d.data, d.length, 0, (struct sockaddr*) &d.to, sizeof(d.to)) == -1) {
     perror("SEND FAILED");
   } else {
@@ -183,6 +214,9 @@ struct timeval packet_send(int s) {
       }
     }
   }
+
+#endif // BORA_DROP
+
   l=d.length;
   sem_post(&qEmpty);
   timersub(&t_end, &t_start, &ret);
@@ -223,18 +257,20 @@ void * send_packet(void * sock) {
         pthread_mutex_unlock(&send_lock);
         if (z) {
             sleep_prev = sleeptime;
+
             packet_send(s);
+
             sleeptime = sleep_prev + sleeptime;
         } else {
             lasthost = NULL;
         }
     }
     z = 0;
-    //puts("SEND_PACKET pre sleep\n");
+
     usleep(sleeptime);
-    //puts("SEND_PACKET post sleep\n");
+
     packet_send(s);
-    //puts("SEND_PACKET post send\n");
+
 
     pthread_mutex_lock(&send_lock);
     //printf("S_TRESHOLD: %i, MTU: %i, f_send: %i, nowthres: %i, bandwidth: %i\n", S_TRESHOLD, MTU, f_send, MTU * f_send * 1000000L / bandwidth, bandwidth);

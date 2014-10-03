@@ -195,10 +195,12 @@ int resend_timeout_nacks(struct timeval now) {
     MYSLIST_FOREACH_SAFE(cur, &peer->nacks, entries, tmp_cur) {
       if (now_usec > (time_to_usec(cur->sendtime) + timeout)) {
         ret++;
+        //printf("NOW: %llu SENDTIME: %llu TIMEOUT: %llu TIMEOUT_TIME: %llu\n", now_usec, time_to_usec(cur->sendtime), timeout, time_to_usec(cur->sendtime) + timeout);
+        //printf("TIMEOUT: %llu \n\n",timeout);
         cur->d.data[0] &= BLOCK_MASK_CONSECUTIVE;
         if (cur->d.data[0]&(BLK_BLOCK_ACK)) {
             cur->d.data[0] |= BLOCK_RETRANSMISSION;
-            send_data(cur->d);
+            //send_data(cur->d);
         }
         MYSLIST_REMOVE(&peer->nacks, cur, Ack, entries);
         free(cur);

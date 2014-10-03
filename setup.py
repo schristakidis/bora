@@ -13,7 +13,7 @@ if system() == 'Windows':
 else:
 	module1 = Extension('bora',
                     define_macros = [('BORA_RETRANSMISSION', '1'),
-                                     ('BORA_TIMEOUT', '1')],
+                                     ('BORA_TIMEOUT', '1'), ('BORA_DROP', '5')],
                     extra_compile_args = ['-g','-ggdb', '-mno-ms-bitfields', '-Wall', '-Wextra', '-Wstrict-prototypes'],
                     include_dirs = ['./', '/usr/include/'],
                     libraries = ['pthread'],

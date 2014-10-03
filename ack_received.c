@@ -55,12 +55,12 @@ struct timeval compute_average (struct Ack_values * ack_store, int trip) {
 uint64_t get_timeout_value (struct sockaddr_in * peer_address) {
   uint64_t ret = 0;
   PeerAckStore * peer;
-  pthread_mutex_lock(&ack_list);
+  //pthread_mutex_lock(&ack_list);
   peer = find_peer_by_host(peer_address);
   if (peer) {
-    ret = peer->lastRTT * 1.5;
+    ret = peer->lastRTT * 1.2 > 10000 ? peer->lastRTT * 1.2 : 10000;
   }
-  pthread_mutex_unlock(&ack_list);
+  //pthread_mutex_unlock(&ack_list);
   return ret;
 }
 
@@ -148,8 +148,13 @@ int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, stru
 
 #ifdef BORA_RETRANSMISSION
     int lost_acks = remove_lost_acks(ack_s, ack_r->cons);
-    printf("LOST ACKS: %d\n", lost_acks);
+    //if (lost_acks) {
+    //    printf("LOST ACKS: %d\n", lost_acks);
+    //}
     int errors = resend_ooo_nacks(ack_s);
+    //if (errors) {
+    //    printf("ERRORS: %d\n", errors);
+    //}
 #else
     int errors = remove_ooo_nacks(ack_s);
 #endif // BORA_RETRANSMISSION

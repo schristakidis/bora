@@ -148,6 +148,7 @@ int ack_received(Ack * ack_s, AckReceived * ack_r, struct timeval received, stru
 
 #ifdef BORA_RETRANSMISSION
     int lost_acks = remove_lost_acks(ack_s, ack_r->cons);
+    lost_acks = lost_acks;
     //if (lost_acks) {
     //    printf("LOST ACKS: %d\n", lost_acks);
     //}

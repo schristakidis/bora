@@ -146,7 +146,7 @@ int remove_lost_acks(Ack*ack, uint16_t cons) {
             content.fragmentid < ack_content.fragmentid &&
             ack_content.fragmentid - content.fragmentid <= cons)
             {
-                printf("MISSED ACK FOR FRAGMENT sid:%d bid:%d fid:%d\n", content.streamid, content.blockid, content.fragmentid);
+                //printf("MISSED ACK FOR FRAGMENT sid:%d bid:%d fid:%d\n", content.streamid, content.blockid, content.fragmentid);
                 MYSLIST_REMOVE(&peer->nacks, cur, Ack, entries);
                 free(cur);
             }

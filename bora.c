@@ -285,6 +285,7 @@ PyObject* bora_BIter_iternext(PyObject *self)
     int s, b;
     IncomingData d;
     PyObject *tmp;
+    PyObject *tmpo;
 
     //(p->i)++;
     //puts("BITER LOCKING\n");
@@ -311,10 +312,18 @@ PyObject* bora_BIter_iternext(PyObject *self)
 #else
         inet_ntop(AF_INET, &d.from.sin_addr, host_ip, INET_ADDRSTRLEN);
 #endif
-        PyDict_SetItemString(incomingDict, "host", Py_BuildValue("s", host_ip));
-        PyDict_SetItemString(incomingDict, "port", Py_BuildValue("i", ntohs(d.from.sin_port)));
-        PyDict_SetItemString(incomingDict, "message", Py_BuildValue("s#", &d.buf[1], d.buflen-1));
-        PyDict_SetItemString(incomingDict, "ts", Py_BuildValue("d", (double)d.tv.tv_sec + (double)d.tv.tv_usec/1000000.0));
+        tmpo = Py_BuildValue("s", host_ip);
+        PyDict_SetItemString(incomingDict, "host", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("i", ntohs(d.from.sin_port));
+        PyDict_SetItemString(incomingDict, "port", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("s#", &d.buf[1], d.buflen-1);
+        PyDict_SetItemString(incomingDict, "message", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("d", (double)d.tv.tv_sec + (double)d.tv.tv_usec/1000000.0);
+        PyDict_SetItemString(incomingDict, "ts", tmpo);
+        Py_DECREF(tmpo);
         tmp = Py_BuildValue("iiO", s, b, incomingDict);
       } else {
         tmp = Py_BuildValue("ii", s, b);
@@ -431,14 +440,17 @@ PyObject* bora_BWIter_iternext(PyObject *self)
       PyObject * peer_stats_dict;
       PyObject * last_seq_dict;
       PyObject * current_seq;
+      PyObject * tmpo;
       struct PeerAckStats ackstats;
       PeerAckStore * peercur;
       AckStore * peerscur;
       AckStore * tmppeerscur;
       char ip_addr[INET_ADDRSTRLEN];
 
-      peer_stats = PyList_New(0);
       ackstats = get_ack_store();
+
+      peer_stats = PyList_New(0);
+
       MYSLIST_FOREACH(peercur, ackstats.peerstats, entries) {
         peer_dict = PyDict_New();
 #if defined(_WIN32) || defined(_WIN64)
@@ -448,35 +460,74 @@ PyObject* bora_BWIter_iternext(PyObject *self)
 #else
         inet_ntop(AF_INET, &(peercur->addr.sin_addr), ip_addr, INET_ADDRSTRLEN);
 #endif
-        PyDict_SetItemString(peer_dict, "host", Py_BuildValue("s", ip_addr));
-        PyDict_SetItemString(peer_dict, "port", Py_BuildValue("i", ntohs((peercur->addr).sin_port)));
-        PyDict_SetItemString(peer_dict, "minSTT", Py_BuildValue("l", peercur->minSTT.tv_sec * 1000000L + peercur->minSTT.tv_usec));
-        PyDict_SetItemString(peer_dict, "minRTT", Py_BuildValue("l", peercur->minRTT.tv_sec * 1000000L + peercur->minRTT.tv_usec));
-        PyDict_SetItemString(peer_dict, "avgRTT", Py_BuildValue("l", peercur->avgRTT.tv_sec * 1000000L + peercur->avgRTT.tv_usec));
-        PyDict_SetItemString(peer_dict, "avgSTT", Py_BuildValue("l", peercur->avgSTT.tv_sec * 1000000L + peercur->avgSTT.tv_usec));
-        PyDict_SetItemString(peer_dict, "errRTT", Py_BuildValue("l", peercur->errRTT.tv_sec * 1000000L + peercur->errRTT.tv_usec));
-        PyDict_SetItemString(peer_dict, "errSTT", Py_BuildValue("l", peercur->errSTT.tv_sec * 1000000L + peercur->errSTT.tv_usec));
-        PyDict_SetItemString(peer_dict, "acked_total", Py_BuildValue("l", peercur->total_acked));
-        PyDict_SetItemString(peer_dict, "error_total", Py_BuildValue("l", peercur->total_errors));
-        PyDict_SetItemString(peer_dict, "acked_last", Py_BuildValue("l", peercur->last_acked));
-        PyDict_SetItemString(peer_dict, "error_last", Py_BuildValue("l", peercur->last_error));
+
+        tmpo = Py_BuildValue("s", ip_addr);
+        PyDict_SetItemString(peer_dict, "host", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("i", ntohs((peercur->addr).sin_port));
+        PyDict_SetItemString(peer_dict, "port", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("l", peercur->minSTT.tv_sec * 1000000L + peercur->minSTT.tv_usec);
+        PyDict_SetItemString(peer_dict, "minSTT", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("l", peercur->minRTT.tv_sec * 1000000L + peercur->minRTT.tv_usec);
+        PyDict_SetItemString(peer_dict, "minRTT", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("l", peercur->avgRTT.tv_sec * 1000000L + peercur->avgRTT.tv_usec);
+        PyDict_SetItemString(peer_dict, "avgRTT", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("l", peercur->avgSTT.tv_sec * 1000000L + peercur->avgSTT.tv_usec);
+        PyDict_SetItemString(peer_dict, "avgSTT", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("l", peercur->errRTT.tv_sec * 1000000L + peercur->errRTT.tv_usec);
+        PyDict_SetItemString(peer_dict, "errRTT", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("l", peercur->errSTT.tv_sec * 1000000L + peercur->errSTT.tv_usec);
+        PyDict_SetItemString(peer_dict, "errSTT", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("l", peercur->total_acked);
+        PyDict_SetItemString(peer_dict, "acked_total", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("l", peercur->total_errors);
+        PyDict_SetItemString(peer_dict, "error_total", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("l", peercur->last_acked);
+        PyDict_SetItemString(peer_dict, "acked_last", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("l", peercur->last_error);
+        PyDict_SetItemString(peer_dict, "error_last", tmpo);
+
         peer_values = PyList_New(0);
         MYSLIST_FOREACH_SAFE(peerscur, &peercur->ack_store, entries, tmppeerscur) {
           peer_stats_dict = PyDict_New();
-          PyDict_SetItemString(peer_stats_dict, "sent", Py_BuildValue("d", (double)peerscur->sent.tv_sec + (double)peerscur->sent.tv_usec/1000000.0));
-          PyDict_SetItemString(peer_stats_dict, "RTT", Py_BuildValue("l", peerscur->RTT.tv_sec * 1000000L + peerscur->RTT.tv_usec));
-          PyDict_SetItemString(peer_stats_dict, "STT", Py_BuildValue("l", peerscur->STT.tv_sec * 1000000L + peerscur->STT.tv_usec));
-          PyDict_SetItemString(peer_stats_dict, "seq", Py_BuildValue("i", peerscur->seq));
-          PyDict_SetItemString(peer_stats_dict, "sleep", Py_BuildValue("i", peerscur->sleeptime));
+          tmpo = Py_BuildValue("d", (double)peerscur->sent.tv_sec + (double)peerscur->sent.tv_usec/1000000.0);
+          PyDict_SetItemString(peer_stats_dict, "sent", tmpo);
+          Py_DECREF(tmpo);
+          tmpo = Py_BuildValue("l", peerscur->RTT.tv_sec * 1000000L + peerscur->RTT.tv_usec);
+          PyDict_SetItemString(peer_stats_dict, "RTT", tmpo);
+          Py_DECREF(tmpo);
+          tmpo = Py_BuildValue("l", peerscur->STT.tv_sec * 1000000L + peerscur->STT.tv_usec);
+          PyDict_SetItemString(peer_stats_dict, "STT", tmpo);
+          Py_DECREF(tmpo);
+          tmpo = Py_BuildValue("i", peerscur->seq);
+          PyDict_SetItemString(peer_stats_dict, "seq", tmpo);
+          Py_DECREF(tmpo);
+          tmpo = Py_BuildValue("i", peerscur->sleeptime);
+          PyDict_SetItemString(peer_stats_dict, "sleep", tmpo);
+          Py_DECREF(tmpo);
           PyList_Append(peer_values, peer_stats_dict);
+          //Py_DECREF(peer_stats_dict);
 
           MYSLIST_REMOVE(&peercur->ack_store, peerscur, AckStore, entries);
           if (peerscur != ackstats.last_seq) {
             free(peerscur);
           }
         }
-        PyDict_SetItemString(peer_dict, "values", Py_BuildValue("O", peer_values));
+        tmpo = Py_BuildValue("O", peer_values);
+        PyDict_SetItemString(peer_dict, "values", tmpo);
+        Py_DECREF(tmpo);
         PyList_Append(peer_stats, peer_dict);
+        //Py_DECREF(peer_dict);
       }
 
       if (PyList_Size(peer_stats)>0 && ackstats.last_seq!=NULL) {
@@ -489,13 +540,27 @@ PyObject* bora_BWIter_iternext(PyObject *self)
 #else
         inet_ntop(AF_INET, &(ls->addr->sin_addr), ip_addr, INET_ADDRSTRLEN);
 #endif
-        PyDict_SetItemString(last_seq_dict, "host", Py_BuildValue("s", ip_addr));
-        PyDict_SetItemString(last_seq_dict, "port", Py_BuildValue("i", ntohs(ls->addr->sin_port)));
-        PyDict_SetItemString(last_seq_dict, "sent", Py_BuildValue("d", (double)ls->sent.tv_sec + (double)ls->sent.tv_usec/1000000.0));
-        PyDict_SetItemString(last_seq_dict, "RTT", Py_BuildValue("l", ackstats.last_seq->RTT.tv_sec * 1000000L + ackstats.last_seq->RTT.tv_usec));
-        PyDict_SetItemString(last_seq_dict, "STT", Py_BuildValue("l", ackstats.last_seq->STT.tv_sec * 1000000L + ackstats.last_seq->STT.tv_usec));
-        PyDict_SetItemString(last_seq_dict, "seq", Py_BuildValue("i", ackstats.last_seq->seq));
-        PyDict_SetItemString(last_seq_dict, "sleep", Py_BuildValue("i", ackstats.last_seq->sleeptime));
+        tmpo = Py_BuildValue("s", ip_addr);
+        PyDict_SetItemString(last_seq_dict, "host", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("i", ntohs(ls->addr->sin_port));
+        PyDict_SetItemString(last_seq_dict, "port", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("d", (double)ls->sent.tv_sec + (double)ls->sent.tv_usec/1000000.0);
+        PyDict_SetItemString(last_seq_dict, "sent", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("l", ackstats.last_seq->RTT.tv_sec * 1000000L + ackstats.last_seq->RTT.tv_usec);
+        PyDict_SetItemString(last_seq_dict, "RTT", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("l", ackstats.last_seq->STT.tv_sec * 1000000L + ackstats.last_seq->STT.tv_usec);
+        PyDict_SetItemString(last_seq_dict, "STT", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("i", ackstats.last_seq->seq);
+        PyDict_SetItemString(last_seq_dict, "seq", tmpo);
+        Py_DECREF(tmpo);
+        tmpo = Py_BuildValue("i", ackstats.last_seq->sleeptime);
+        PyDict_SetItemString(last_seq_dict, "sleep", tmpo);
+        Py_DECREF(tmpo);
         free(ls);
       } else {
         last_seq_dict = Py_BuildValue("");
@@ -505,18 +570,38 @@ PyObject* bora_BWIter_iternext(PyObject *self)
 
       sent_data = PyDict_New();
 
-      PyDict_SetItemString(sent_data, "O_DATA_COUNTER", Py_BuildValue("i", stats_s[O_DATA_COUNTER]));
-      PyDict_SetItemString(sent_data, "O_PKG_COUNTER", Py_BuildValue("i", stats_s[O_PKG_COUNTER]));
-      PyDict_SetItemString(sent_data, "O_ACK_COUNTER", Py_BuildValue("i", stats_s[O_ACK_COUNTER]));
-      PyDict_SetItemString(sent_data, "O_ACK_DATA_COUNTER", Py_BuildValue("i", stats_s[O_ACK_DATA_COUNTER]));
+      tmpo = Py_BuildValue("i", stats_s[O_DATA_COUNTER]);
+      PyDict_SetItemString(sent_data, "O_DATA_COUNTER", tmpo);
+      Py_DECREF(tmpo);
+      tmpo = Py_BuildValue("i", stats_s[O_PKG_COUNTER]);
+      PyDict_SetItemString(sent_data, "O_PKG_COUNTER", tmpo);
+      Py_DECREF(tmpo);
+      tmpo = Py_BuildValue("i", stats_s[O_ACK_COUNTER]);
+      PyDict_SetItemString(sent_data, "O_ACK_COUNTER", tmpo);
+      Py_DECREF(tmpo);
+      tmpo = Py_BuildValue("i", stats_s[O_ACK_DATA_COUNTER]);
+      PyDict_SetItemString(sent_data, "O_ACK_DATA_COUNTER", tmpo);
+      Py_DECREF(tmpo);
+      tmpo = Py_BuildValue("i", stats_s[O_RETR_COUNTER]);
+      PyDict_SetItemString(sent_data, "O_RETR_COUNTER", tmpo);
+      Py_DECREF(tmpo);
+      tmpo = Py_BuildValue("i", stats_s[O_RETR_DATA_COUNTER]);
+      PyDict_SetItemString(sent_data, "O_RETR_DATA_COUNTER", tmpo);
+      Py_DECREF(tmpo);
 
 
       ret = PyDict_New();
       PyDict_SetItemString(ret, "sent_data", sent_data);
+      Py_DECREF(sent_data);
       PyDict_SetItemString(ret, "peer_stats", peer_stats);
+      Py_DECREF(peer_stats);
       PyDict_SetItemString(ret, "last_ack", last_seq_dict);
+      Py_DECREF(last_seq_dict);
       PyDict_SetItemString(ret, "last_nack", current_seq);
-      PyDict_SetItemString(ret, "idle", Py_BuildValue("l", get_idle()));
+      Py_DECREF(current_seq);
+      tmpo = Py_BuildValue("l", get_idle());
+      PyDict_SetItemString(ret, "idle", tmpo);
+      Py_DECREF(tmpo);
 
 
       //puts("REEET");
@@ -881,6 +966,7 @@ static PyObject *incomplete_block_list( PyObject * self, PyObject * args )
 {
     UNUSED(self);
     UNUSED(args);
+    PyObject * tmpo;
     if (death) {
         Py_RETURN_NONE;
     }
@@ -891,7 +977,9 @@ static PyObject *incomplete_block_list( PyObject * self, PyObject * args )
 
     ret = PyList_New((Py_ssize_t)blist.length);
     for (i=0; i<blist.length; i++) {
-      PyList_SET_ITEM(ret, i, Py_BuildValue("{sisi}", "sid", (uint16_t)blist.blist[i].streamid, "bid", (uint32_t)blist.blist[i].blockid));
+      tmpo = Py_BuildValue("{sisi}", "sid", (uint16_t)blist.blist[i].streamid, "bid", (uint32_t)blist.blist[i].blockid);
+      PyList_SET_ITEM(ret, i, tmpo);
+      //Py_DECREF(tmpo);
     }
 
     if (blist.blist!=NULL) {
@@ -905,6 +993,7 @@ static PyObject *complete_block_list( PyObject * self, PyObject * args )
 {
     UNUSED(self);
     UNUSED(args);
+    PyObject * tmpo;
     if (death) {
         Py_RETURN_NONE;
     }
@@ -915,7 +1004,9 @@ static PyObject *complete_block_list( PyObject * self, PyObject * args )
 
     ret = PyList_New((Py_ssize_t)blist.length);
     for (i=0; i<blist.length; i++) {
-      PyList_SET_ITEM(ret, i, Py_BuildValue("{sisi}", "sid", blist.blist[i].streamid, "bid", blist.blist[i].blockid));
+      tmpo = Py_BuildValue("{sisi}", "sid", blist.blist[i].streamid, "bid", blist.blist[i].blockid);
+      PyList_SET_ITEM(ret, i, tmpo);
+      //Py_DECREF(tmpo);
     }
 
     if (blist.blist!=NULL) {
@@ -935,18 +1026,35 @@ static PyObject *get_in_stats( PyObject * self, PyObject * value )
     //puts("GET IN STATS_LOCKING\n");
     int rst = (int)PyInt_AsLong(value);
     PyObject* ret;
+    PyObject* tmpo;
 
     ret = PyDict_New();
 
     pthread_mutex_lock(&stat_lock_r);
-    PyDict_SetItemString(ret, "I_PKG_COUNTER", Py_BuildValue("i", stats_r[I_PKG_COUNTER]));
-    PyDict_SetItemString(ret, "I_DATA_COUNTER", Py_BuildValue("i", stats_r[I_DATA_COUNTER]));
-    PyDict_SetItemString(ret, "I_ACK_DATA_COUNTER", Py_BuildValue("i", stats_r[I_ACK_DATA_COUNTER]));
-    PyDict_SetItemString(ret, "I_ACK_COUNTER", Py_BuildValue("i", stats_r[I_ACK_COUNTER]));
-    PyDict_SetItemString(ret, "I_GARBAGE", Py_BuildValue("i", stats_r[I_GARBAGE]));
-    PyDict_SetItemString(ret, "I_DUPE_COUNTER", Py_BuildValue("i", stats_r[I_DUPE_COUNTER]));
-    PyDict_SetItemString(ret, "I_DUPE_DATA_COUNTER", Py_BuildValue("i", stats_r[I_DUPE_DATA_COUNTER]));
-    PyDict_SetItemString(ret, "I_BAD_ACK_COUNTER", Py_BuildValue("i", stats_r[I_BAD_ACK_COUNTER]));
+    tmpo = Py_BuildValue("i", stats_r[I_PKG_COUNTER]);
+    PyDict_SetItemString(ret, "I_PKG_COUNTER", tmpo);
+    Py_DECREF(tmpo);
+    tmpo = Py_BuildValue("i", stats_r[I_DATA_COUNTER]);
+    PyDict_SetItemString(ret, "I_DATA_COUNTER", tmpo);
+    Py_DECREF(tmpo);
+    tmpo = Py_BuildValue("i", stats_r[I_ACK_DATA_COUNTER]);
+    PyDict_SetItemString(ret, "I_ACK_DATA_COUNTER", tmpo);
+    Py_DECREF(tmpo);
+    tmpo = Py_BuildValue("i", stats_r[I_ACK_COUNTER]);
+    PyDict_SetItemString(ret, "I_ACK_COUNTER", tmpo);
+    Py_DECREF(tmpo);
+    tmpo = Py_BuildValue("i", stats_r[I_GARBAGE]);
+    PyDict_SetItemString(ret, "I_GARBAGE", tmpo);
+    Py_DECREF(tmpo);
+    tmpo = Py_BuildValue("i", stats_r[I_DUPE_COUNTER]);
+    PyDict_SetItemString(ret, "I_DUPE_COUNTER", tmpo);
+    Py_DECREF(tmpo);
+    tmpo = Py_BuildValue("i", stats_r[I_DUPE_DATA_COUNTER]);
+    PyDict_SetItemString(ret, "I_DUPE_DATA_COUNTER", tmpo);
+    Py_DECREF(tmpo);
+    tmpo = Py_BuildValue("i", stats_r[I_BAD_ACK_COUNTER]);
+    PyDict_SetItemString(ret, "I_BAD_ACK_COUNTER", tmpo);
+    Py_DECREF(tmpo);
     if (rst) {
       reset_in_counters();
     }
@@ -966,16 +1074,29 @@ static PyObject *get_out_stats( PyObject * self, PyObject * value )
     //puts("GET OUT STATS_LOCKING\n");
     int rst = (int)PyInt_AsLong(value);
     PyObject* ret;
+    PyObject *tmpo;
 
     ret = PyDict_New();
 
     pthread_mutex_lock(&stat_lock_s);
-    PyDict_SetItemString(ret, "O_DATA_COUNTER", Py_BuildValue("i", stats_s[O_DATA_COUNTER]));
-    PyDict_SetItemString(ret, "O_PKG_COUNTER", Py_BuildValue("i", stats_s[O_PKG_COUNTER]));
-    PyDict_SetItemString(ret, "O_ACK_COUNTER", Py_BuildValue("i", stats_s[O_ACK_COUNTER]));
-    PyDict_SetItemString(ret, "O_ACK_DATA_COUNTER", Py_BuildValue("i", stats_s[O_ACK_DATA_COUNTER]));
-    PyDict_SetItemString(ret, "O_RETR_COUNTER", Py_BuildValue("i", stats_s[O_RETR_COUNTER]));
-    PyDict_SetItemString(ret, "O_RETR_DATA_COUNTER", Py_BuildValue("i", stats_s[O_RETR_DATA_COUNTER]));
+    tmpo = Py_BuildValue("i", stats_s[O_DATA_COUNTER]);
+    PyDict_SetItemString(ret, "O_DATA_COUNTER", tmpo);
+    Py_DECREF(tmpo);
+    tmpo = Py_BuildValue("i", stats_s[O_PKG_COUNTER]);
+    PyDict_SetItemString(ret, "O_PKG_COUNTER", tmpo);
+    Py_DECREF(tmpo);
+    tmpo = Py_BuildValue("i", stats_s[O_ACK_COUNTER]);
+    PyDict_SetItemString(ret, "O_ACK_COUNTER", tmpo);
+    Py_DECREF(tmpo);
+    tmpo = Py_BuildValue("i", stats_s[O_ACK_DATA_COUNTER]);
+    PyDict_SetItemString(ret, "O_ACK_DATA_COUNTER", tmpo);
+    Py_DECREF(tmpo);
+    tmpo = Py_BuildValue("i", stats_s[O_RETR_COUNTER]);
+    PyDict_SetItemString(ret, "O_RETR_COUNTER", tmpo);
+    Py_DECREF(tmpo);
+    tmpo = Py_BuildValue("i", stats_s[O_RETR_DATA_COUNTER]);
+    PyDict_SetItemString(ret, "O_RETR_DATA_COUNTER", tmpo);
+    Py_DECREF(tmpo);
     if (rst) {
       reset_in_counters();
     }
@@ -999,6 +1120,7 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
     }
     int i, j;
     PyObject* ret;
+    PyObject *tmpo;
     BWEstimation * band;
     BWEstimation * band_temp;
     BW * b;
@@ -1024,7 +1146,9 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
 
         j = 0;
         MYSLIST_FOREACH_SAFE(b, &band->bandwidth, entries, b_temp) {
-            PyList_SET_ITEM(l, j, Py_BuildValue("{sksd}", "bw", (unsigned long int)b->bw, "tv", (double)b->tv.tv_sec + (double)b->tv.tv_usec/1000000.0));
+            tmpo = Py_BuildValue("{sksd}", "bw", (unsigned long int)b->bw, "tv", (double)b->tv.tv_sec + (double)b->tv.tv_usec/1000000.0);
+            PyList_SET_ITEM(l, j, tmpo);
+            //Py_DECREF(tmpo);
             MYSLIST_REMOVE(&band->bandwidth, b, BW, entries);
             free(b);
             j++;
@@ -1043,7 +1167,10 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
         inet_ntop(AF_INET, &(band->from.sin_addr), ip_addr, INET_ADDRSTRLEN);
 #endif
 
-        PyList_SET_ITEM(ret, i, Py_BuildValue("{sssHsO}", "ip", ip_addr, "port", ntohs(band->from.sin_port), "list", l));
+        tmpo = Py_BuildValue("{sssHsO}", "ip", ip_addr, "port", ntohs(band->from.sin_port), "list", l);
+        //Py_DECREF(l);
+        PyList_SET_ITEM(ret, i, tmpo);
+        //Py_DECREF(tmpo);
         MYSLIST_REMOVE(&bwlist, band, BWEstimation, entries);
         free(band);
 
@@ -1082,6 +1209,7 @@ static PyObject *bora_get_bw_msg( PyObject * self, PyObject * args )
             return NULL;
     }
     PyObject* ret;
+    PyObject *tmpo;
     BWMsg * b;
     BWMsg * b_temp;
     struct BandwidthMessages bwlist = get_bwmsg_list();
@@ -1096,7 +1224,9 @@ static PyObject *bora_get_bw_msg( PyObject * self, PyObject * args )
 #else
         inet_ntop(AF_INET, &(b->addr.sin_addr), ip_addr, INET_ADDRSTRLEN);
 #endif
-        PyList_Append(ret, Py_BuildValue("{sssHsksd}", "ip", ip_addr, "port", ntohs(b->addr.sin_port), "bw", (unsigned long int)b->bw, "tv", (double)b->recv_time.tv_sec + (double)b->recv_time.tv_usec/1000000.0));
+        tmpo = Py_BuildValue("{sssHsksd}", "ip", ip_addr, "port", ntohs(b->addr.sin_port), "bw", (unsigned long int)b->bw, "tv", (double)b->recv_time.tv_sec + (double)b->recv_time.tv_usec/1000000.0);
+        PyList_Append(ret, tmpo);
+        //Py_DECREF(tmpo);
 
         MYSLIST_REMOVE(&bwlist, b, BWMsg, entries);
         free(b);
@@ -1272,6 +1402,7 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
     }
 
     PyObject * res;
+    PyObject * tmpo;
     PyObject * dict_ck;
 
 
@@ -1358,14 +1489,29 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
 #else
             inet_ntop(AF_INET, &ckResult[i].addr.sin_addr, dest, INET_ADDRSTRLEN);
 #endif
-            PyDict_SetItemString(dict_ck, "host", Py_BuildValue("s", dest));
-            PyDict_SetItemString(dict_ck, "port", Py_BuildValue("i", ntohs(ckResult[i].addr.sin_port)));
-            PyDict_SetItemString(dict_ck, "sent", Py_BuildValue("d", (double)ckResult[i].sent.tv_sec + (double)ckResult[i].sent.tv_usec/1000000.0));
-            PyDict_SetItemString(dict_ck, "RTT", Py_BuildValue("l", ckResult[i].RTT.tv_sec * 1000000L + ckResult[i].RTT.tv_usec));
-            PyDict_SetItemString(dict_ck, "STT", Py_BuildValue("l", ckResult[i].STT.tv_sec * 1000000L + ckResult[i].STT.tv_usec));
-            PyDict_SetItemString(dict_ck, "seq", Py_BuildValue("i", ckResult[i].seq));
-            PyDict_SetItemString(dict_ck, "sleep", Py_BuildValue("i", ckResult[i].sleeptime));
+            tmpo = Py_BuildValue("s", dest);
+            PyDict_SetItemString(dict_ck, "host", tmpo);
+            Py_DECREF(tmpo);
+            tmpo = Py_BuildValue("i", ntohs(ckResult[i].addr.sin_port));
+            PyDict_SetItemString(dict_ck, "port", tmpo);
+            Py_DECREF(tmpo);
+            tmpo = Py_BuildValue("d", (double)ckResult[i].sent.tv_sec + (double)ckResult[i].sent.tv_usec/1000000.0);
+            PyDict_SetItemString(dict_ck, "sent", tmpo);
+            Py_DECREF(tmpo);
+            tmpo = Py_BuildValue("l", ckResult[i].RTT.tv_sec * 1000000L + ckResult[i].RTT.tv_usec);
+            PyDict_SetItemString(dict_ck, "RTT", tmpo);
+            Py_DECREF(tmpo);
+            tmpo = Py_BuildValue("l", ckResult[i].STT.tv_sec * 1000000L + ckResult[i].STT.tv_usec);
+            PyDict_SetItemString(dict_ck, "STT", tmpo);
+            Py_DECREF(tmpo);
+            tmpo = Py_BuildValue("i", ckResult[i].seq);
+            PyDict_SetItemString(dict_ck, "seq", tmpo);
+            Py_DECREF(tmpo);
+            tmpo = Py_BuildValue("i", ckResult[i].sleeptime);
+            PyDict_SetItemString(dict_ck, "sleep", tmpo);
+            Py_DECREF(tmpo);
             PyList_Append(res, dict_ck);
+            //Py_DECREF(dict_ck);
         }
         sem_post(&ckEmpty);
     } else {

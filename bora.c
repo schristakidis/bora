@@ -975,7 +975,7 @@ static PyObject *incomplete_block_list( PyObject * self, PyObject * args )
     PyObject* ret;
     BlockIDList blist = get_incomplete_block_list();
 
-    ret = PyList_New(0); //(Py_ssize_t)blist.length);
+    ret = PyList_New(0);
     for (i=0; i<blist.length; i++) {
       tmpo = Py_BuildValue("{sisi}", "sid", (uint16_t)blist.blist[i].streamid, "bid", (uint32_t)blist.blist[i].blockid);
       PyList_Append(ret, tmpo);
@@ -1002,7 +1002,7 @@ static PyObject *complete_block_list( PyObject * self, PyObject * args )
     PyObject* ret;
     BlockIDList blist = get_complete_block_list();
 
-    ret = PyList_New(0); //(Py_ssize_t)blist.length);
+    ret = PyList_New(0);
     for (i=0; i<blist.length; i++) {
       tmpo = Py_BuildValue("{sisi}", "sid", blist.blist[i].streamid, "bid", blist.blist[i].blockid);
       PyList_Append(ret, tmpo);
@@ -1127,20 +1127,11 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
     BW * b_temp;
     struct bwstruct bwlist = fetch_bw_estimations();
 
-    i = 0;
-    MYSLIST_FOREACH(band, &bwlist, entries)
-      i++;
 
-    ret = PyList_New(0); //(Py_ssize_t)i);
+    ret = PyList_New(0);
 
     i = 0;
     MYSLIST_FOREACH_SAFE(band, &bwlist, entries, band_temp) {
-
-
-
-        j = 0;
-        MYSLIST_FOREACH(b, &band->bandwidth, entries)
-            j++;
 
         PyObject* l = PyList_New(0); //(Py_ssize_t)j);
 
@@ -1270,7 +1261,7 @@ static PyObject *bora_send_bw_msg( PyObject * self, PyObject * args )
     for (i=0;i<list_len; i++) {
         dict_cur = PyList_GetItem(pylist, i);
         if (!PyDict_Check(dict_cur)) {
-                PyErr_SetString(PyExc_AttributeError, "List ha no-dict objects");
+                PyErr_SetString(PyExc_AttributeError, "List has no-dict objects");
                 return NULL;
 
         }

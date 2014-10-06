@@ -516,7 +516,7 @@ PyObject* bora_BWIter_iternext(PyObject *self)
           PyDict_SetItemString(peer_stats_dict, "sleep", tmpo);
           Py_DECREF(tmpo);
           PyList_Append(peer_values, peer_stats_dict);
-          //Py_DECREF(peer_stats_dict);
+          Py_DECREF(peer_stats_dict);
 
           MYSLIST_REMOVE(&peercur->ack_store, peerscur, AckStore, entries);
           if (peerscur != ackstats.last_seq) {
@@ -527,7 +527,7 @@ PyObject* bora_BWIter_iternext(PyObject *self)
         PyDict_SetItemString(peer_dict, "values", tmpo);
         Py_DECREF(tmpo);
         PyList_Append(peer_stats, peer_dict);
-        //Py_DECREF(peer_dict);
+        Py_DECREF(peer_dict);
       }
 
       if (PyList_Size(peer_stats)>0 && ackstats.last_seq!=NULL) {
@@ -975,11 +975,11 @@ static PyObject *incomplete_block_list( PyObject * self, PyObject * args )
     PyObject* ret;
     BlockIDList blist = get_incomplete_block_list();
 
-    ret = PyList_New((Py_ssize_t)blist.length);
+    ret = PyList_New(0); //(Py_ssize_t)blist.length);
     for (i=0; i<blist.length; i++) {
       tmpo = Py_BuildValue("{sisi}", "sid", (uint16_t)blist.blist[i].streamid, "bid", (uint32_t)blist.blist[i].blockid);
-      PyList_SET_ITEM(ret, i, tmpo);
-      //Py_DECREF(tmpo);
+      PyList_Append(ret, tmpo);
+      Py_DECREF(tmpo);
     }
 
     if (blist.blist!=NULL) {
@@ -1002,11 +1002,11 @@ static PyObject *complete_block_list( PyObject * self, PyObject * args )
     PyObject* ret;
     BlockIDList blist = get_complete_block_list();
 
-    ret = PyList_New((Py_ssize_t)blist.length);
+    ret = PyList_New(0); //(Py_ssize_t)blist.length);
     for (i=0; i<blist.length; i++) {
       tmpo = Py_BuildValue("{sisi}", "sid", blist.blist[i].streamid, "bid", blist.blist[i].blockid);
-      PyList_SET_ITEM(ret, i, tmpo);
-      //Py_DECREF(tmpo);
+      PyList_Append(ret, tmpo);
+      Py_DECREF(tmpo);
     }
 
     if (blist.blist!=NULL) {
@@ -1131,7 +1131,7 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
     MYSLIST_FOREACH(band, &bwlist, entries)
       i++;
 
-    ret = PyList_New((Py_ssize_t)i);
+    ret = PyList_New(0); //(Py_ssize_t)i);
 
     i = 0;
     MYSLIST_FOREACH_SAFE(band, &bwlist, entries, band_temp) {
@@ -1142,13 +1142,13 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
         MYSLIST_FOREACH(b, &band->bandwidth, entries)
             j++;
 
-        PyObject* l = PyList_New((Py_ssize_t)j);
+        PyObject* l = PyList_New(0); //(Py_ssize_t)j);
 
         j = 0;
         MYSLIST_FOREACH_SAFE(b, &band->bandwidth, entries, b_temp) {
             tmpo = Py_BuildValue("{sksd}", "bw", (unsigned long int)b->bw, "tv", (double)b->tv.tv_sec + (double)b->tv.tv_usec/1000000.0);
-            PyList_SET_ITEM(l, j, tmpo);
-            //Py_DECREF(tmpo);
+            PyList_Append(l, tmpo);
+            Py_DECREF(tmpo);
             MYSLIST_REMOVE(&band->bandwidth, b, BW, entries);
             free(b);
             j++;
@@ -1168,9 +1168,9 @@ static PyObject *get_bw_stats( PyObject * self, PyObject * args )
 #endif
 
         tmpo = Py_BuildValue("{sssHsO}", "ip", ip_addr, "port", ntohs(band->from.sin_port), "list", l);
-        //Py_DECREF(l);
-        PyList_SET_ITEM(ret, i, tmpo);
-        //Py_DECREF(tmpo);
+        Py_DECREF(l);
+        PyList_Append(ret, tmpo);
+        Py_DECREF(tmpo);
         MYSLIST_REMOVE(&bwlist, band, BWEstimation, entries);
         free(band);
 
@@ -1226,7 +1226,7 @@ static PyObject *bora_get_bw_msg( PyObject * self, PyObject * args )
 #endif
         tmpo = Py_BuildValue("{sssHsksd}", "ip", ip_addr, "port", ntohs(b->addr.sin_port), "bw", (unsigned long int)b->bw, "tv", (double)b->recv_time.tv_sec + (double)b->recv_time.tv_usec/1000000.0);
         PyList_Append(ret, tmpo);
-        //Py_DECREF(tmpo);
+        Py_DECREF(tmpo);
 
         MYSLIST_REMOVE(&bwlist, b, BWMsg, entries);
         free(b);
@@ -1511,7 +1511,7 @@ static PyObject *bora_send_cookie( PyObject * self, PyObject * args )
             PyDict_SetItemString(dict_ck, "sleep", tmpo);
             Py_DECREF(tmpo);
             PyList_Append(res, dict_ck);
-            //Py_DECREF(dict_ck);
+            Py_DECREF(dict_ck);
         }
         sem_post(&ckEmpty);
     } else {
